@@ -45,7 +45,7 @@ Packages used include:
 
 ```{r, message = FALSE}
 library(tidyverse)
-library(anytime)
+library(anytime) # Quicker than tiverse's lubridate package
 ```
 
 
@@ -57,11 +57,16 @@ I wrote a quick function called `ECCCTidy` which tidies a single ECCC NAPS `.csv
 ```{r, message = FALSE, warning = FALSE, error = FALSE}
 
 ECCCTidy <- function(file, rows = Inf){
-
+  
+  # Getting pollutant from file name
   chem <- sub("\\_.*", "", file)
   
+  
+  # Skipping ECCC header when importing file
   df <- read_csv(file, skip = 7, n_max = rows)
   
+  
+  # Actually tidying ECCC file
   df <- df %>% rename_all(funs(gsub("\\..*","", make.names(names(df))))) %>%
     pivot_longer(
       cols = starts_with("H"),
@@ -79,7 +84,7 @@ ECCCTidy <- function(file, rows = Inf){
 
 ## Transforming Data for Applet
 
-I wrote another function which will combine tidied *O~3~* and *NO~2~* datasets, and calculate the *O~x~* value at each given time. All `-999` values are converted to `NA`, and therefore are not used in any subsequent plotting/calculations. I also added a `rows` input where you can specify the number of rows you want to import from the `.csv`. The default is `Inf` (read every row), but you can specify smaller numbers when testing stuff. 
+I wrote another function which will combine tidied *O~3~* and *NO~2~* datasets,^[Note this uses inner_join, so only O3 and NO2 values from stations found in BOTH datasets will be included.] and calculate the *O~x~* value at each given time. All `-999` values are converted to `NA`, and therefore are not used in any subsequent plotting/calculations. I also added a `rows` input where you can specify the number of rows you want to import from the `.csv`. The default is `Inf` (read every row), but you can specify smaller numbers when testing stuff. 
 
 ```{r, message = FALSE, warning = FALSE, error = FALSE}
 # Test data to combine 
@@ -89,7 +94,7 @@ O3 <- ECCCTidy("O3_2018.csv", rows = 2500)
 # Row outline of function, will need to clean up and expand to include other pollutants (i.e. SO2)
 ECCCCombine <- function(O3, NO2){
   df <- O3 %>% 
-  left_join(NO2) %>%
+  inner_join(NO2) %>%
   na_if(-999) %>%
   mutate(Ox = O3 + NO2)
 }
@@ -107,19 +112,19 @@ The end result of this function will be saved as a `.csv` and *this will be the 
 
 Quickly plotting the combined ECCC data shows that the NAs are properly plotted as gaps in the timeseries, and that everything is kosher. 
 
-```{r, message = FALSE, echo = FALSE, warning = FALSE, fig.cap = "Example plots from datasets. (A) Plot at single NAPS station of O3, NO2, and Ox values. (B) O3 values for different stations. Note gaps in time series"}
+```{r, message = FALSE, echo = FALSE, warning = FALSE, fig.height = 4, fig.cap = "Example plots from datasets. (A) Plot at single NAPS station of O3, NO2, and Ox values. (B) O3 values for different stations. Note gaps in time series"}
 
 library(ggpubr)
 
 x <- ECCCCombine(O3, NO2)
 
-write.csv(x = x, file = "ECCCCombined_2018_test.csv")
+write.csv(x = x, file = "www/ECCCCombined_2018_test.csv")
 
 p <- ggplot(subset(x, NAPS == c("10102"))) +
       geom_line(aes(x = Date_time, y = O3, colour = "O3")) +
       geom_line(aes(x = Date_time, y = NO2, colour = "NO2")) +
       geom_line(aes(x = Date_time, y = Ox, colour = "Ox")) + 
-      theme(legend.position="bottom") +
+      theme(legend.position="right") +
       scale_x_datetime()
 
 q <- ggplot(subset(x, NAPS == c("10102", "10401", "10501", "10601", "10602")), 
@@ -131,7 +136,7 @@ q <- ggplot(subset(x, NAPS == c("10102", "10401", "10501", "10601", "10602")),
 
 ggarrange(p,q,
           labels = c("A", "B"), 
-          ncol = 2)
+          nrow = 2)
 
 ```
 # Notes for the downstream stuff
