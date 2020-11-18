@@ -1,0 +1,12 @@
+name: ShinyApp_Tutorial
+title: ShinyApp_Tutorial
+username:
+account: davidrosshall
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 3205484
+bundleId: 3845525
+url: https://davidrosshall.shinyapps.io/ShinyApp_Tutorial/
+when: 1605061175.38894
+asMultiple: FALSE
+asStatic: FALSE
