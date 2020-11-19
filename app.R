@@ -4,40 +4,46 @@ library(ggpmisc)
 library(ggthemes)
 library(ggExtra)
 library(ggseas)
-
+library(leaflet)
 
 
 # Load data ----
 data <- read.csv("www/ECCCCombined_2018_test.csv")
 
+mapInfo <- data %>%
+  distinct(NAPS, .keep_all = TRUE) %>%
+  select(c(NAPS, City, P, Latitude, Longitude))
+  
+
 
 # User interface ----
 ui <- fluidPage(
-  selectInput("NAPS", 
-              label = "Choose a station to display",
-              choices = unique(data$NAPS),
-              selected = "10102"),
-  sliderInput(inputId = "slider_time",
-              label = "Time",  
-              min = as.Date(min(data$Date_time)), max = as.Date(max(data$Date_time)), 
-              value = c(as.Date(min(data$Date_time)), as.Date(max(data$Date_time)))),
-  plotOutput("TimeseriesPlot"),
   
-  # selectInput("Chem1", 
-  #             label = "Choose a pollutant to display",
-  #             choices = c("O3", "NO2", "Ox"),
-  #             selected = "O3"),
-  # 
-  # selectInput("Chem2", 
-  #             label = "Choose a pollutant to display",
-  #             choices = c("O3", "NO2", "Ox"),
-  #             selected = "NO2"),
-  # 
-
-  plotOutput("CompPlot")
+  titlePanel("Testing Shiny Applet for the visualization of Air Quality Data"),
+  
+  sidebarLayout(
+    sidebarPanel(
+      selectInput("NAPS", 
+                  label = "Choose which station's data to display",
+                  choices = unique(data$NAPS),
+                  selected = "10102"),
+      sliderInput(inputId = "slider_time",
+                  label = "Select time range to be displayed",  
+                  min = as.Date(min(data$Date_time)), max = as.Date(max(data$Date_time)), 
+                  value = c(as.Date(min(data$Date_time)), as.Date(max(data$Date_time)))),
+      "Browsw the map below to find all NAPS stations contained in the current dataset; click on a pin to see that stations NAPS ID number which you can input above.",
+      leafletOutput("mymap")
+    ),
+    
+    mainPanel(
+      "Below is a time series plot of NO2, O3, and Ox concentrations. Note that an 8hr moving average is applied to smooth data. **Future versions might have this as an On/Off option.",
+      plotOutput("TimeseriesPlot"),
+      "Below is a correlation plot of NO2 vs O3 over the time span plotted above. Read below for notes.",
+      plotOutput("CompPlot"),
+      "*Notes*: (1) The equation of best fit, and its R^2 value are plotted in the top left; (2) The plot contains marginal histograms which show the 1-dimensional distribution of the corresponding axis-variable, and (3) To avoid overplotting the transparancey (alpha) of ind. points has been decreased (darker spots mean a denser number of points) and random noise (read jitter) has been added to each point so they don't overlap, this does not affect the marginal histogram or the line of best fit."
+    )
+  )
 )
-  
-
 
 # Server logic ----
 server <- function(input, output) {
@@ -75,9 +81,15 @@ server <- function(input, output) {
       theme_classic()
     ggMarginal(p, type = "density")
     
+    })
+    
+  output$mymap <- renderLeaflet({
+      leaflet(data = mapInfo) %>% addTiles() %>%
+        addMarkers(~Longitude, ~Latitude, popup = ~paste(City, ", NAPS: ", NAPS), label = ~paste(City, ", NAPS: ", NAPS))
+    })
   
     
-   })
+   
   
 }
 
