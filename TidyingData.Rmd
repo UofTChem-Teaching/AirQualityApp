@@ -52,7 +52,7 @@ However, the structure of this dataset have some incompatible elements with the 
   \label{widevtidy}
 \end{marginfigure}
 ```
-My first idea was to combine two ECCC annual datasets into a single file, tidy, file. While R has some tricks to handling these types of files in memory, when it comes to actually saving the resulting file was exceptionally large. For example, combining the 10.3 mb `O3_2018.csv` with the 7.5 mb `NO2_2018.csv` resulted in a 126 mb `.csv` file. Correspondingly, I'm going to look for an alternative way to store and access the data. 
+My first idea was to combine two ECCC annual datasets into a single file, tidy, file. While R has some tricks to handling these types of files in memory, when it comes to actually saving, the resulting file was exceptionally large. For example, combining the 10.3 mb `O3_2018.csv` with the 7.5 mb `NO2_2018.csv` resulted in a 126 mb `.csv` file. Correspondingly, I'm going to look for an alternative way to store and access the data. 
 
 I'm currently thinking about combining datasets in their original 'wide' format, and reactively subsetting and tidying them on the fly as users input calculations. 
 
@@ -67,7 +67,7 @@ library(anytime) # Quicker than tiverse's lubridate package
 
 # Importing and joining ECCC datasets
 
-The goal is to combine multiple ECCC hourly datasets in their 'wide' format. In other words, so that each row is a day, and the hourly data is sorted as a column.  
+The goal is to combine multiple ECCC hourly datasets in their 'wide' format. In other words, so that each row is a day, and the hourly data is stored as a column.  
 
 ```{r, eval=FALSE, error=FALSE, warning=FALSE, message=FALSE}
 
@@ -83,17 +83,18 @@ ECCCcolRename <- function(df, chem){
 # Only worrying about O3 and NO2 for now
 combineO3andNO2 <- function(O3, NO2, nrows = Inf){
   
-  O3dat <-  read_csv(O3, skip = 7, n_max = nrows) %>%
+  O3dat <-  read.csv(O3, skip = 7, nrows = nrows) %>%
     ECCCcolRename(., "O3") %>%
     select(-c("Pollutant"))
     
-  NO2dat <- read_csv(NO2, skip = 7, n_max = nrows) %>%
+  NO2dat <- read.csv(NO2, skip = 7, nrows = nrows) %>%
     ECCCcolRename(., "NO2") %>%
     select(-c("Latitude", "Longitude", "P", "City", "Pollutant"))
   
   df <- O3dat %>%
     inner_join(NO2dat, by = c("NAPS", "Date")) %>%
     na_if(-999)
+    
 }
 
 datWide <- combineO3andNO2(O3 = "O3_2018.csv", NO2 = "NO2_2018.csv")
@@ -101,6 +102,40 @@ datWide <- combineO3andNO2(O3 = "O3_2018.csv", NO2 = "NO2_2018.csv")
 #write.csv(datWide, file = "www/ECCC2018_wideCombined.csv")
 
 ```
+
+## Classifying population centres
+
+A tentative question is for students to compare their urban (downtown Toronto) data to that of a rural/smaller population center. To this end, i'll need to identify the population of each NAPS ID assosciated City and use that vale to colour the map marker. StatsCan *Population and Dwelling Count Highlight Tables, 2016 Census* has population counts from all census populations. Data can be found [here](https://www12.statcan.gc.ca/census-recensement/2016/dp-pd/hlt-fst/pd-pl/comprehensive.cfm) According to Stats Canada an "'urban area' was defined as having a population of at least 1,000 and a density of 400 or more people per square kilometre. All territory outside an urban area was defined as rural area."
+
+They also offer classification on urban population centres:
+
+- **small population centres**, with a population of between 1,000 and 29,999
+- **medium population centres**, with a population of between 30,000 and 99,999
+- **large urban population centres**, consisting of a population of 100,000 and over
+
+```{r}
+pops <- read.csv("NAPSPops.csv")
+
+# Adding population to wide data
+df <- datWide %>% 
+inner_join(pops, by = "City") %>%
+  mutate(PopSize = if_else(Population >= 100000, "large",
+                           if_else(Population < 100000 & Population >= 30000, "medium",
+                                   if_else(Population < 30000 & Population >= 1000, "small","rural")))) %>%
+    relocate(Population, .before = Latitude) %>%
+    relocate(PopSize, .before = Latitude) 
+
+# Simplifying city names for map labels & dropdown menu
+df <- df %>%
+  unite("City", City:P, sep = ", ") %>%
+  unite("NAPS", City:NAPS, sep = ", NAPS: ") 
+
+write.csv(df, file = "www/ECCC2018_wideCombined.csv")
+
+
+```
+
+-----------------------------------------
 
 ## Comparison between tidy and wide
 
@@ -130,7 +165,12 @@ ECCCTidy <- function(file, rows = Inf){
       values_to = chem)  %>%
     mutate(Date_time = anytime(paste(Date, str_sub(Hour, -2, -1), ":00"))) %>%
     select(-c(Date, Hour, Pollutant)) %>%
-  relocate(Date_time, .before = chem)
+  relocate(Date_time, .before = chem) 
+  
+  # Combining City w/ NAPS to simplify Shiny selection
+  
+  df <- df %>%
+    unite("City_NAPS", City:NAPS, sep = ", NAPS: ")
   
   df
 }
@@ -176,19 +216,19 @@ library(ggpubr)
 
 x <- ECCCCombine(O3, NO2)
 
-write.csv(x = x, file = "www/ECCCCombined_2018_test.csv")
+#write.csv(x = x, file = "www/ECCCCombined_2018_test.csv")
 
-p <- ggplot(subset(x, NAPS == c("10102"))) +
+p <- ggplot(subset(x, City_NAPS == c("St Johns, NAPS: 10102"))) +
       geom_line(aes(x = Date_time, y = O3, colour = "O3")) +
       geom_line(aes(x = Date_time, y = NO2, colour = "NO2")) +
       geom_line(aes(x = Date_time, y = Ox, colour = "Ox")) + 
       theme(legend.position="right") +
       scale_x_datetime()
 
-q <- ggplot(subset(x, NAPS == c("10102", "10401", "10501", "10601", "10602")), 
+q <- ggplot(subset(x, City_NAPS == c("St Johns, NAPS: 10102", "Mount Pearl, NAPS: 10401")), 
           aes(x = Date_time, y = O3)) +
       geom_line() +
-      facet_grid(vars(NAPS)) +
+      facet_grid(vars(City_NAPS)) +
       scale_x_datetime()
 
 
@@ -197,6 +237,8 @@ ggarrange(p,q,
           nrow = 2)
 
 ```
+
+
 
 # Notes for the downstream stuff
 

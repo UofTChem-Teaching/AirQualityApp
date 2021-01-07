@@ -8,22 +8,51 @@ library(leaflet) # interactive map
 library(DT) 
 library(ggseas) # for rolling avg. 
 library(anytime)
+library(zoo)
+library(plotly)
 
 data <- data.table::fread("www/ECCC2018_wideCombined.csv")
 
 mapInfo <- data %>%
     distinct(NAPS, .keep_all = TRUE) %>%
-    select(c(NAPS, City, P, Latitude, Longitude))
+    select(c(NAPS, Latitude, Longitude, Population, PopSize)) 
 
+## 1.2 Custom icons for population size ================================= 
+
+leafIcons <- icons(
+    iconUrl = ifelse(mapInfo$PopSize == "large", "www/largeIcon.png",
+                     ifelse(mapInfo$PopSize == "medium", "www/medIcon.png",
+                            ifelse(mapInfo$PopSize == "small", "www/smallIcon.png", "www/ruralIcon.png")
+                             )
+    ),
+    iconWidth = 26, iconHeight = 40, 
+    iconAnchorX = 13, iconAnchorY = 40
+    )
+
+## 1.3 Descriptive text for map icon popups ================================= 
+# labs <- lapply(seq(nrow(mapInfo)), function(i) {
+#     paste0(mapInfo[i, "City"], '<br>',
+#            'NAPS', mapInfo[i, "NAPSID"], '<br>',
+#            'Population: ', mapInfo[i, "Population"],'<br>',
+#            'Size: ', mapInfo[i, "PopSize"])
+# })
+
+labs <- lapply(seq(nrow(mapInfo)), function(i) {
+    paste0( '<p>',
+            '<b>',mapInfo[i, "NAPS"], '</b><br>',
+            "Population: ", mapInfo[i, "Population"], '<br>',
+            "Size: ", mapInfo[i, "PopSize"], 
+            '</p>') 
+})
 
 # 2. UI  ---------------------------------
 
 ui <- fluidPage(
 
-    # 2.1 App title =====================================
+    ## 2.1 App title =====================================
     titlePanel("Exploring CHM 135 Air Quality Data"),
     
-    # 2.2 Sidebar Inputs ==================== 
+    ## 2.2 Sidebar Inputs ==================== 
     sidebarLayout(
         sidebarPanel(
             leafletOutput("mymap"),
@@ -41,16 +70,17 @@ ui <- fluidPage(
                            end = anydate(max(data$Date)),
                            max = anydate(max(data$Date))
                            ),
-            radioButtons(inputId = "rollingAvg", label = "Plot 8hr rolling average?", choices = c("Yes", "No")),
+            radioButtons(inputId = "rollingAvg", label = "Plot 8hr rolling average?", choices = c("Yes (Basic plotly)", "No (Interactive plot)")),
             radioButtons(inputId = "excel", label = "Improve my correlation plot?", choices = c("No, I like Excel and abacuses", "Yes, it's 2020 ffs"))
         ),
 
-        # 2.3 Main Panel with outputs ========================
+       ## 2.3 Main Panel with outputs ========================
         mainPanel(
             
             tabsetPanel(type = "tabs",
                         tabPanel("Plot",
-                                 plotOutput("TimeseriesPlot"),
+                                 plotlyOutput("TimeseriesPlot"),
+                                 "Hey Jess, I was just playing around with the plotly package, which creates plots you can interact with (i.e. zoom into, etc.). The 8hr-avg plot is a standard static output from R, and the 1hr plot is the new interactive version. I can make everything this type of interactive if you'd prefer.",
                                  plotOutput("CompPlot"),
                                  "Hey Jess, I though playing with the optiosn would be revealing. The normal scatter plot (like you'd make in Excel), really hides the actual distribution of the data"
                         ),
@@ -62,6 +92,7 @@ ui <- fluidPage(
 )
 
 # 3. Server -------------------------------------
+
 server <- function(input, output) {
     
     
@@ -81,52 +112,91 @@ server <- function(input, output) {
             ) %>%
             pivot_wider(names_from = 'Pollutant',
                         values_from = 'Concentration') %>%
-            mutate(Ox = NO2 + O3) %>%
             mutate(Date_time = anytime(paste(Date, str_sub(Hour, -2, -1), ":00"))) %>%
-            filter(Date_time >= input$dateRange[1] & Date_time <= input$dateRange[2])
-
+            filter(Date_time >= input$dateRange[1] & Date_time <= input$dateRange[2]) %>%
+            mutate(Ox = NO2 + O3,
+                   NO2_8hr = zoo::rollmean(NO2, k = 7, fill = NA, align = "right"))
+        
     })
     
     # 3.2 Time series plot =================
     
-    output$TimeseriesPlot <- renderPlot({
+    output$TimeseriesPlot <- renderPlotly({
         
-            if(input$rollingAvg == "No"){
+            if(input$rollingAvg == "No (Interactive plot)"){
                 
                 # Plot w/ 1hr readings.
-                ggplot(data = stationDat(), 
-                       aes(x = as.POSIXct(Date_time))) +
-                    geom_line(aes(y = O3, colour = "O3")) +
-                    geom_line(aes(y = NO2, colour = "NO2")) +
-                    geom_line(aes(y = Ox, colour = "Ox")) +
-                    scale_x_datetime() +
-                    xlab("Date") +
-                    ylab("Concentration (ppb)") + 
-                    labs(colour = "Pollutant") +
-                    theme_classic() +
-                    ggtitle(paste("NAPS station ", input$NAPS), 
-                            subtitle = "Time series with 1 hr readings") 
+                # p <- ggplot(data = stationDat(), 
+                #            aes(x = Date_time)) +
+                #         geom_line(aes(y = O3, colour = "O3")) +
+                #         geom_line(aes(y = NO2, colour = "NO2")) +
+                #         geom_line(aes(y = Ox, colour = "Ox")) +
+                #         scale_x_datetime() +
+                #         xlab("Date") +
+                #         ylab("Concentration (ppb)") + 
+                #         labs(colour = "Pollutant") +
+                #         theme_classic() +
+                #         ggtitle(paste("NAPS station ", input$NAPS), 
+                #                 subtitle = "Time series with 1 hr readings") 
+                # fig <- ggplotly(p) %>% layout(
+                #     rangeslider = list(type = "date")
+                # )
+                # p
                 
+                ### Check out slide 47 here: https://plotcon17.cpsievert.me/workshop/day2/#47 to link plotly slider to scatter plot. Talk with jess if this is worth it...
+                fig <- plot_ly(stationDat(), x = ~Date_time)
+                fig <- fig %>% add_lines(y = ~O3, name = "O3")
+                fig <- fig %>% add_lines(y = ~NO2, name = "NO2")
+                fig <- fig %>% add_lines(y = ~Ox, name = "Ox")
+                fig <- fig %>% layout(
+                    title = paste("1 hr readings at station ", input$NAPS),
+                    xaxis = list(
+                        rangeselector = list(
+                            buttons = list(
+                                list(
+                                    count = 8,
+                                    label = "8 hrs",
+                                    step = "hour",
+                                    stepmode = "backward"),
+                                list(
+                                    count = 1,
+                                    label = "1 day",
+                                    step = "day",
+                                    stepmode = "backward"),
+                                list(
+                                    count = 7,
+                                    label = "7 days",
+                                    step = "day",
+                                    stepmode = "backward"),
+           
+                                list(step = "all"))),
+                        
+                        rangeslider = list(type = "date")),
+                    
+                    yaxis = list(title = "Concentration (ppb)"))
+                
+                fig
                 
             } else {
                 
                 # Plot w/ 8hr rolling avg. 
-                ggplot(data = stationDat(), 
-                       aes(x = as.POSIXct(Date_time))) +
-                    stat_rollapplyr(aes(y = O3, colour = "O3"), 
-                                    width = 8, align = "right") +
-                    stat_rollapplyr(aes(y = NO2, colour = "NO2"), 
-                                    width = 8, align = "right") +
-                    stat_rollapplyr(aes(y = Ox, colour = "Ox"), 
-                                    width = 8, align = "right") +
-                    scale_x_datetime() +
-                    xlab("Date") +
-                    ylab("Concentration (ppb)") +
-                    labs(colour = "Pollutant") +
-                    theme_classic() +
-                    ggtitle(paste("NAPS station ", input$NAPS), 
-                            subtitle = "Time series with rolling 8 hr average") 
-                
+                p <- ggplot(data = stationDat(), 
+                           aes(x = Date_time)) +
+                        stat_rollapplyr(aes(y = O3, colour = "O3"), 
+                                        width = 8, align = "right") +
+                        stat_rollapplyr(aes(y = NO2, colour = "NO2"), 
+                                        width = 8, align = "right") +
+                        stat_rollapplyr(aes(y = Ox, colour = "Ox"), 
+                                        width = 8, align = "right") +
+                        scale_x_datetime() +
+                        xlab("Date") +
+                        ylab("Concentration (ppb)") +
+                        labs(colour = "Pollutant") +
+                        theme_classic() +
+                        ggtitle(paste("NAPS station ", input$NAPS), 
+                                subtitle = "Time series with rolling 8 hr average") 
+                fig <- ggplotly(p)
+                fig
             }
             
     })
@@ -172,7 +242,12 @@ server <- function(input, output) {
     
     output$mymap <- renderLeaflet({
         leaflet(data = mapInfo) %>% addTiles() %>%
-            addMarkers(~Longitude, ~Latitude, popup = ~paste(City,", NAPS: ", NAPS), label = ~paste(City, ", NAPS: ", NAPS))
+            addMarkers(~Longitude, 
+                       ~Latitude, 
+                       popup = lapply(labs, htmltools::HTML), 
+                       #popup = ~paste(NAPS),
+                       label = ~paste(NAPS),
+                       icon = leafIcons)
     })
     
     # 3.5 Table w/ summary stats ===============
