@@ -223,8 +223,9 @@ server <- function(input, output) {
                              aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")), 
                              parse = TRUE,
                              label.x.npc = 1) +
-                xlab("Concentration NO2 (ppb)") +
-                ylab("Concentration O3 (ppb)") 
+                xlab("1hr Concentration NO2 (ppb)") +
+                ylab("1hr Concentration O3 (ppb)") +
+                ggtitle(paste("\nO3 vs NO2 at ",input$NAPS, " \nfrom ", input$dateRange[1], " to ", input$dateRange[2] ))
                 
             p
             
@@ -237,9 +238,10 @@ server <- function(input, output) {
                          aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")), 
                          parse = TRUE,
                          label.x.npc = 1) +
-            xlab("Concentration NO2 (ppb)") +
-            ylab("Concentration O3 (ppb)") +
-            theme_classic()
+            xlab("1hr Concentration NO2 (ppb)") +
+            ylab("1hr Concentration O3 (ppb)") +
+            theme_classic() +
+            ggtitle(paste("\nO3 vs NO2 at ",input$NAPS, " \nfrom ", input$dateRange[1], " to ", input$dateRange[2] ))
         ggMarginal(p, type = "density")
         
         }
