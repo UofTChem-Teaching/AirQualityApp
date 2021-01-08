@@ -80,11 +80,14 @@ ui <- fluidPage(
             tabsetPanel(type = "tabs",
                         tabPanel("Plot",
                                  plotlyOutput("TimeseriesPlot"),
-                                 "Hey Jess, I was just playing around with the plotly package, which creates plots you can interact with (i.e. zoom into, etc.). The 8hr-avg plot is a standard static output from R, and the 1hr plot is the new interactive version. I can make everything this type of interactive if you'd prefer.",
+                                 br(),
+                                 p("<br> A new p() command starts <br> a new paragraph. Supply a style attribute to change the format of the entire paragraph.", style = "font-family: 'times'; font-si16pt"),
                                  plotOutput("CompPlot"),
                                  "Hey Jess, I though playing with the optiosn would be revealing. The normal scatter plot (like you'd make in Excel), really hides the actual distribution of the data"
                         ),
-                        tabPanel("Summary Stats", DT::dataTableOutput("SumTable")),
+                        tabPanel("Summary Stats", 
+                                 br(),
+                                 DT::dataTableOutput("SumTable")),
                         tabPanel("Notes", "Notes go here. data from Blah Blah Blah, UofT This Blah Blah Blah. Hi mom!")
             )
         )
@@ -173,7 +176,7 @@ server <- function(input, output) {
                 fig <- fig %>% add_lines(y = ~NO2_8hr, name = "NO2_8hr")
                 fig <- fig %>% add_lines(y = ~Ox_8hr, name = "Ox_8hr")
                 fig <- fig %>% layout(
-                    title = paste("8 hr readings at ", input$NAPS),
+                    title = paste("Rolling 8hr mean readings at ", input$NAPS),
                     xaxis = list(
                         title = "Time",
                         showgrid = F, 
@@ -263,20 +266,20 @@ server <- function(input, output) {
     
     output$SumTable <- DT::renderDataTable({
         
-        stationDat() %>%
-            pivot_longer(cols = c("O3", "NO2", "Ox", "NO2_8hr", "O3_8hr", "Ox_8hr"),
-                         names_to = "Pollutant",
-                         values_to = "Concentration") %>%
-            group_by(Pollutant) %>%
-            summarise(mean = mean(Concentration, na.rm = TRUE), 
-                      sd = sd(Concentration, na.rm = TRUE),
-                      median = median(Concentration, na.rm = TRUE),
-                      min =  min(Concentration, na.rm = TRUE),
-                      max = max(Concentration, na.rm = TRUE)
-            ) %>%
-            mutate_if(is.numeric, round, digits = 2)
-            
-         
+        DT::datatable( stationDat() %>%
+                            pivot_longer(cols = c("O3", "NO2", "Ox", "NO2_8hr", "O3_8hr", "Ox_8hr"),
+                                         names_to = "Pollutant",
+                                         values_to = "Concentration") %>%
+                            group_by(Pollutant) %>%
+                            summarise(mean = mean(Concentration, na.rm = TRUE), 
+                                      sd = sd(Concentration, na.rm = TRUE),
+                                      median = median(Concentration, na.rm = TRUE),
+                                      min =  min(Concentration, na.rm = TRUE),
+                                      max = max(Concentration, na.rm = TRUE)
+                            ) %>%
+                            mutate_if(is.numeric, round, digits = 2),
+                       caption = 'Table 1: Summary statistics for O3, NO2, and Ox measurements from your selected NAPS station and time range. Note, all measurements are in ppb.' 
+        )
     })
     
 }
