@@ -58,20 +58,20 @@ ui <- fluidPage(
             leafletOutput("mymap"),
             
             selectInput("NAPS", 
-                        label = "Choose which station's data to display",
+                        label = "Choose which station's data to display; use the map above to view location of available stations.",
                         choices = unique(data$NAPS),
                         selected = "10102"
                         ),
             
             dateRangeInput('dateRange', 
-                           label = "date range input",
+                           label = "Select the date range you would like to plot.",
                            start = anydate(min(data$Date)),
                            min = anydate(min(data$Date)),
                            end = anydate(max(data$Date)),
                            max = anydate(max(data$Date))
                            ),
-            radioButtons(inputId = "rollingAvg", label = "Plot 8hr rolling average?", choices = c("Yes (Basic plotly)", "No (Interactive plot)")),
-            radioButtons(inputId = "excel", label = "Improve my correlation plot?", choices = c("No, I like Excel and abacuses", "Yes, it's 2020 ffs"))
+            radioButtons(inputId = "rollingAvg", label = "Plot 8hr rolling average?", choices = c("Yes", "No, plot 1hr measurements")),
+            radioButtons(inputId = "excel", label = "Improve my correlation plot?", choices = c("No", "Yes"))
         ),
 
        ## 2.3 Main Panel with outputs ========================
@@ -125,15 +125,17 @@ server <- function(input, output) {
     
     output$TimeseriesPlot <- renderPlotly({
         
-            if(input$rollingAvg == "No (Interactive plot)"){
+            if(input$rollingAvg == "No, plot 1hr measurements"){
      
                 fig <- plot_ly(stationDat(), x = ~Date_time)
                 fig <- fig %>% add_lines(y = ~O3, name = "O3")
                 fig <- fig %>% add_lines(y = ~NO2, name = "NO2")
                 fig <- fig %>% add_lines(y = ~Ox, name = "Ox")
                 fig <- fig %>% layout(
-                    title = paste("1 hr readings at ", input$NAPS),
+                    title = paste("1 hr readings at ", input$NAPS, '<br>' ),
                     xaxis = list(
+                        title = "Time",
+                        showgrid = F, 
                         rangeselector = list(
                             buttons = list(
                                 list(
@@ -153,10 +155,13 @@ server <- function(input, output) {
                                     stepmode = "backward"),
            
                                 list(step = "all"))),
-                        
+                   
                         rangeslider = list(type = "date")),
                     
-                    yaxis = list(title = "Concentration (ppb)"))
+                    yaxis = list(title = "Concentration (ppb)",
+                                 showgrid = F)) %>%
+                    config(modeBarButtonsToRemove = c("zoomIn2d", "zoomOut2d", "pan2d", "autoScale2d", "toggleSpikelines", "zoom2d", "resetScale2d" )) %>%
+                    layout(margin = list(b = 20, l = 40, r = 40, t = 100, pad = 0, autoexpand = TRUE))
                 
                 fig
                 
@@ -170,6 +175,8 @@ server <- function(input, output) {
                 fig <- fig %>% layout(
                     title = paste("8 hr readings at ", input$NAPS),
                     xaxis = list(
+                        title = "Time",
+                        showgrid = F, 
                         rangeselector = list(
                             buttons = list(
                                 list(
@@ -192,8 +199,10 @@ server <- function(input, output) {
                         
                         rangeslider = list(type = "date")),
                     
-                    yaxis = list(title = "Concentration (ppb)"))
-                
+                    yaxis = list(title = "Concentration (ppb)",
+                                 showgrid = F)) %>%
+                    config(modeBarButtonsToRemove = c("zoomIn2d", "zoomOut2d", "pan2d", "autoScale2d", "toggleSpikelines", "zoom2d", "resetScale2d" )) %>%
+                    layout(margin = list(b = 20, l = 40, r = 40, t = 100, pad = 0, autoexpand = TRUE))
                 fig
             }
             
@@ -205,7 +214,7 @@ server <- function(input, output) {
     output$CompPlot <- renderPlot({
         my.formula <- y ~ x
         
-        if(input$excel == "No, I like Excel and abacuses"){
+        if(input$excel == "No"){
             
             p <- ggplot(data = stationDat(), aes(x = NO2, y = O3)) + 
                 geom_point() +
