@@ -5,11 +5,10 @@ library(tidyverse)
 library(ggExtra) # for marginal histogram
 library(ggpmisc) # to display line of best fit on plot
 library(leaflet) # interactive map
-library(DT) 
-library(ggseas) # for rolling avg. 
-library(anytime)
-library(zoo)
-library(plotly)
+library(DT) # for data table
+library(anytime) # quicker than lubridate
+library(zoo) # rolling averages
+library(plotly) # interactive plots 
 
 data <- data.table::fread("www/ECCC2018_wideCombined.csv")
 
@@ -78,10 +77,14 @@ ui <- fluidPage(
         mainPanel(
             
             tabsetPanel(type = "tabs",
+                        tabPanel("Welcome", 
+                                 h3("Welcome CHM 135 Students"),
+                                 br(),
+                                 p("more text here to introduce the app, functions, etc.")),
                         tabPanel("Plot",
                                  plotlyOutput("TimeseriesPlot"),
                                  br(),
-                                 p("<br> A new p() command starts <br> a new paragraph. Supply a style attribute to change the format of the entire paragraph.", style = "font-family: 'times'; font-si16pt"),
+                                 p("You can interact with the time series plot above; i.e. narrowing displayed date range. Note however that the date range for both plots is dictated by your inputted dates. In other words, you’ll need to change your inputted dates to update the data displayed on the correlation plot.", style = "font-family: 'times'; font-si16pt"),
                                  plotOutput("CompPlot"),
                                  "Hey Jess, I though playing with the optiosn would be revealing. The normal scatter plot (like you'd make in Excel), really hides the actual distribution of the data"
                         ),
@@ -257,7 +260,6 @@ server <- function(input, output) {
             addMarkers(~Longitude, 
                        ~Latitude, 
                        popup = lapply(labs, htmltools::HTML), 
-                       #popup = ~paste(NAPS),
                        label = ~paste(NAPS),
                        icon = leafIcons)
     })
