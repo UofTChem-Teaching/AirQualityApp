@@ -100,7 +100,7 @@ server <- function(input, output) {
     stationDat <- reactive({
         
         validate(
-            need(input$dateRange[1] <= input$dateRange[2], 'Make sure dates are correct. ')
+            need(input$dateRange[1] <= input$dateRange[2], 'Make sure dates are correct.')
         )
         
         data %>% filter(NAPS == input$NAPS) %>%
@@ -115,7 +115,9 @@ server <- function(input, output) {
             mutate(Date_time = anytime(paste(Date, str_sub(Hour, -2, -1), ":00"))) %>%
             filter(Date_time >= input$dateRange[1] & Date_time <= input$dateRange[2]) %>%
             mutate(Ox = NO2 + O3,
-                   NO2_8hr = zoo::rollmean(NO2, k = 7, fill = NA, align = "right"))
+                   NO2_8hr = zoo::rollmean(O3, k = 7, fill = NA, align = "right"),
+                   O3_8hr = zoo::rollmean(NO2, k = 7, fill = NA, align = "right"),
+                   Ox_8hr = zoo::rollmean(Ox, k = 7, fill = NA, align = "right"))
         
     })
     
@@ -124,32 +126,13 @@ server <- function(input, output) {
     output$TimeseriesPlot <- renderPlotly({
         
             if(input$rollingAvg == "No (Interactive plot)"){
-                
-                # Plot w/ 1hr readings.
-                # p <- ggplot(data = stationDat(), 
-                #            aes(x = Date_time)) +
-                #         geom_line(aes(y = O3, colour = "O3")) +
-                #         geom_line(aes(y = NO2, colour = "NO2")) +
-                #         geom_line(aes(y = Ox, colour = "Ox")) +
-                #         scale_x_datetime() +
-                #         xlab("Date") +
-                #         ylab("Concentration (ppb)") + 
-                #         labs(colour = "Pollutant") +
-                #         theme_classic() +
-                #         ggtitle(paste("NAPS station ", input$NAPS), 
-                #                 subtitle = "Time series with 1 hr readings") 
-                # fig <- ggplotly(p) %>% layout(
-                #     rangeslider = list(type = "date")
-                # )
-                # p
-                
-                ### Check out slide 47 here: https://plotcon17.cpsievert.me/workshop/day2/#47 to link plotly slider to scatter plot. Talk with jess if this is worth it...
+     
                 fig <- plot_ly(stationDat(), x = ~Date_time)
                 fig <- fig %>% add_lines(y = ~O3, name = "O3")
                 fig <- fig %>% add_lines(y = ~NO2, name = "NO2")
                 fig <- fig %>% add_lines(y = ~Ox, name = "Ox")
                 fig <- fig %>% layout(
-                    title = paste("1 hr readings at station ", input$NAPS),
+                    title = paste("1 hr readings at ", input$NAPS),
                     xaxis = list(
                         rangeselector = list(
                             buttons = list(
@@ -180,22 +163,37 @@ server <- function(input, output) {
             } else {
                 
                 # Plot w/ 8hr rolling avg. 
-                p <- ggplot(data = stationDat(), 
-                           aes(x = Date_time)) +
-                        stat_rollapplyr(aes(y = O3, colour = "O3"), 
-                                        width = 8, align = "right") +
-                        stat_rollapplyr(aes(y = NO2, colour = "NO2"), 
-                                        width = 8, align = "right") +
-                        stat_rollapplyr(aes(y = Ox, colour = "Ox"), 
-                                        width = 8, align = "right") +
-                        scale_x_datetime() +
-                        xlab("Date") +
-                        ylab("Concentration (ppb)") +
-                        labs(colour = "Pollutant") +
-                        theme_classic() +
-                        ggtitle(paste("NAPS station ", input$NAPS), 
-                                subtitle = "Time series with rolling 8 hr average") 
-                fig <- ggplotly(p)
+                fig <- plot_ly(stationDat(), x = ~Date_time)
+                fig <- fig %>% add_lines(y = ~O3_8hr, name = "O3_8hr")
+                fig <- fig %>% add_lines(y = ~NO2_8hr, name = "NO2_8hr")
+                fig <- fig %>% add_lines(y = ~Ox_8hr, name = "Ox_8hr")
+                fig <- fig %>% layout(
+                    title = paste("8 hr readings at ", input$NAPS),
+                    xaxis = list(
+                        rangeselector = list(
+                            buttons = list(
+                                list(
+                                    count = 8,
+                                    label = "8 hrs",
+                                    step = "hour",
+                                    stepmode = "backward"),
+                                list(
+                                    count = 1,
+                                    label = "1 day",
+                                    step = "day",
+                                    stepmode = "backward"),
+                                list(
+                                    count = 7,
+                                    label = "7 days",
+                                    step = "day",
+                                    stepmode = "backward"),
+                                
+                                list(step = "all"))),
+                        
+                        rangeslider = list(type = "date")),
+                    
+                    yaxis = list(title = "Concentration (ppb)"))
+                
                 fig
             }
             
@@ -255,17 +253,18 @@ server <- function(input, output) {
     output$SumTable <- DT::renderDataTable({
         
         stationDat() %>%
-            pivot_longer(cols = c("O3", "NO2", "Ox"),
+            pivot_longer(cols = c("O3", "NO2", "Ox", "NO2_8hr", "O3_8hr", "Ox_8hr"),
                          names_to = "Pollutant",
                          values_to = "Concentration") %>%
             group_by(Pollutant) %>%
             summarise(mean = mean(Concentration, na.rm = TRUE), 
                       sd = sd(Concentration, na.rm = TRUE),
                       median = median(Concentration, na.rm = TRUE),
-                      min_1hr =  min(Concentration, na.rm = TRUE),
-                      max_1hr = max(Concentration, na.rm = TRUE)
+                      min =  min(Concentration, na.rm = TRUE),
+                      max = max(Concentration, na.rm = TRUE)
             ) %>%
             mutate_if(is.numeric, round, digits = 2)
+            
          
     })
     
