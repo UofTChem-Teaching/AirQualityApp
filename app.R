@@ -85,9 +85,7 @@ ui <- fluidPage(
                                  plotlyOutput("TimeseriesPlot"),
                                  br(),
                                  p("You can interact with the time series plot above; i.e. narrowing displayed date range. Note however that the date range for both plots is dictated by your inputted dates. In other words, you’ll need to change your inputted dates to update the data displayed on the correlation plot.", style = "font-family: 'times'; font-si16pt"),
-                                 plotOutput("CompPlot"),
-                                 "Hey Jess, I though playing with the optiosn would be revealing. The normal scatter plot (like you'd make in Excel), really hides the actual distribution of the data"
-                        ),
+                                 plotOutput("CompPlot")),
                         tabPanel("Summary Stats", 
                                  br(),
                                  DT::dataTableOutput("SumTable")),
