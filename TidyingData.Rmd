@@ -22,11 +22,9 @@ options(htmltools.dir.version = FALSE)
 
 # Source
 
-Air quality data is taken from Environment and Climate Change Canada's (ECCC) National Air Pollution Surveillance Program (NAPS). This specific applet uses *annual continuous hourly measurements*. Each of these files contains the hourly measurements of a single pollutant (i.e. O~3~) across all operational NAPS station for the given year.[^1](<http://data.ec.gc.ca/data/air/monitor/national-air-pollution-surveillance-naps-program/Data-Donnees/2018/ContinuousData-DonneesContinu/?lang=en>)] There is at least a year delay between collection and publication of data.[^2]
+Air quality data is taken from Environment and Climate Change Canada's (ECCC) National Air Pollution Surveillance Program (NAPS). This specific applet uses *annual continuous hourly measurements*. Each of these [files](<http://data.ec.gc.ca/data/air/monitor/national-air-pollution-surveillance-naps-program/Data-Donnees/2018/ContinuousData-DonneesContinu/?lang=en>) contains the hourly measurements of a single pollutant (i.e. O~3~) across all operational NAPS station for the given year. There is at least a year delay between collection and publication of data.[^1]
 
-[^1]: Files can be found on the ECCC website here
-
-[^2]: At the time of writing, the most recent annual report is from 2018
+[^1]: At the time of writing, the most recent annual report is from 2018
 
 ## Data organization
 
@@ -52,9 +50,7 @@ However, the structure of this dataset have some incompatible elements with the 
   \label{widevtidy}
 \end{marginfigure}
 ```
-My first idea was to combine two ECCC annual datasets into a single file, tidy, file. While R has some tricks to handling these types of files in memory, when it comes to actually saving, the resulting file was exceptionally large. For example, combining the 10.3 mb `O3_2018.csv` with the 7.5 mb `NO2_2018.csv` resulted in a 126 mb `.csv` file. Correspondingly, I'm going to look for an alternative way to store and access the data. 
-
-I'm currently thinking about combining datasets in their original 'wide' format, and reactively subsetting and tidying them on the fly as users input calculations. 
+My first idea was to combine two ECCC annual datasets into a single file, tidy, file. While R has some tricks to handling these types of files in memory, when it comes to actually saving, the resulting file was exceptionally large. For example, combining the 10.3 mb `O3_2018.csv` with the 7.5 mb `NO2_2018.csv` resulted in a 126 mb `.csv` file. Correspondingly, I'll store everything 'wide' and after subsetting in app, pivot to 'long'.
 
 # Converting ECCC NAPS data for Applet
 
@@ -64,12 +60,13 @@ Packages used include:
 library(tidyverse)
 library(anytime) # Quicker than tiverse's lubridate package
 ```
+-----------------------
 
 # Importing and joining ECCC datasets
 
 The goal is to combine multiple ECCC hourly datasets in their 'wide' format. In other words, so that each row is a day, and the hourly data is stored as a column.  
 
-```{r, eval=FALSE, error=FALSE, warning=FALSE, message=FALSE}
+```{r, eval=TRUE, error=FALSE, warning=FALSE, message=FALSE}
 
 # Adding pollutant as prefix to hour columns. 
 ECCCcolRename <- function(df, chem){
@@ -99,13 +96,12 @@ combineO3andNO2 <- function(O3, NO2, nrows = Inf){
 
 datWide <- combineO3andNO2(O3 = "O3_2018.csv", NO2 = "NO2_2018.csv")
 
-#write.csv(datWide, file = "www/ECCC2018_wideCombined.csv")
-
 ```
+---------------------------------------------
 
 ## Classifying population centres
 
-A tentative question is for students to compare their urban (downtown Toronto) data to that of a rural/smaller population center. To this end, i'll need to identify the population of each NAPS ID assosciated City and use that vale to colour the map marker. StatsCan *Population and Dwelling Count Highlight Tables, 2016 Census* has population counts from all census populations. Data can be found [here](https://www12.statcan.gc.ca/census-recensement/2016/dp-pd/hlt-fst/pd-pl/comprehensive.cfm) According to Stats Canada an "'urban area' was defined as having a population of at least 1,000 and a density of 400 or more people per square kilometre. All territory outside an urban area was defined as rural area."
+A tentative question is for students to compare their urban (downtown Toronto) data to that of a rural/smaller population center. To this end, I needed to identify the population of each NAPS ID assosciated City and use that vale to colour the map marker. StatsCan *Population and Dwelling Count Highlight Tables, 2016 Census* has population counts from all census populations. Data can be found [here](https://www12.statcan.gc.ca/census-recensement/2016/dp-pd/hlt-fst/pd-pl/comprehensive.cfm) According to Stats Canada an "'urban area' was defined as having a population of at least 1,000 and a density of 400 or more people per square kilometre. All territory outside an urban area was defined as rural area."
 
 They also offer classification on urban population centres:
 
@@ -114,30 +110,55 @@ They also offer classification on urban population centres:
 - **large urban population centres**, consisting of a population of 100,000 and over
 
 ```{r}
-pops <- read.csv("NAPSPops.csv")
+pops <- read.csv("NAPSPops.csv") # Population info for every NAPS City
 
 # Adding population to wide data
-df <- datWide %>% 
-inner_join(pops, by = "City") %>%
+mapInfo <- datWide %>% 
+  inner_join(pops, by = "City") %>%
+  distinct(NAPS, .keep_all = TRUE) %>%
+  select(c(City, P, NAPS, Latitude, Longitude, Population))  %>%
   mutate(PopSize = if_else(Population >= 100000, "large",
-                           if_else(Population < 100000 & Population >= 30000, "medium",
-                                   if_else(Population < 30000 & Population >= 1000, "small","rural")))) %>%
+                    if_else(Population < 100000 & Population >= 30000, "medium",
+                     if_else(Population < 30000 & Population >= 1000, "small","rural")))) %>%
     relocate(Population, .before = Latitude) %>%
     relocate(PopSize, .before = Latitude) 
 
 # Simplifying city names for map labels & dropdown menu
-df <- df %>%
+mapInfo <- mapInfo %>%
   unite("City", City:P, sep = ", ") %>%
   unite("NAPS", City:NAPS, sep = ", NAPS: ") 
 
-write.csv(df, file = "www/ECCC2018_wideCombined.csv")
+#write.csv(df, file = "www/ECCC2018_wideCombined.csv")
+
+
+```
+-----------------------------
+
+## Saving Data files 
+
+```{r, eval = FALSE}
+# Stripping redundant data from ECCC data
+dat4App <- datWide %>%
+  unite("City", City:P, sep = ", ") %>%
+  unite("NAPS", City:NAPS, sep = ", NAPS: ") %>%
+  select(-c(Latitude, Longitude))
+
+# Saving map info and App data
+
+write.csv(dat4App,
+          file = "www/ECCC2018_wideCombined.csv",
+          row.names=FALSE)
+
+write.csv(mapInfo,
+          file = "www/ECCC2018_mapInfo.csv",
+          row.names=FALSE)
 
 
 ```
 
 -----------------------------------------
 
-## Comparison between tidy and wide
+# Comparison between tidy and wide
 
 Currently, combining and saving data in the 'wide' format *significantly* reduces file size. For example, saving the combined 2018 NO2 and O3 hourly data in the wide format takes 11.8 mb, whereas saving the same data in the 'long' tidy format takes 126 mb. 
 
@@ -145,7 +166,7 @@ Currently, combining and saving data in the 'wide' format *significantly* reduce
 
 I wrote a quick function called `ECCCTidy` which tidies a single ECCC NAPS `.csv` file. In other words, it converts the ECCC 'matrix' layout into a 'long' layout where each row is the measurement of that specific pollutant at a given date-time and location. *Note* that all columns start with a capital letter to maintain consistency with the original NAPS dataset.
 
-```{r, message = FALSE, warning = FALSE, error = FALSE}
+```{r, eval = FALSE, message = FALSE, warning = FALSE, error = FALSE}
 
 ECCCTidy <- function(file, rows = Inf){
   
@@ -175,7 +196,6 @@ ECCCTidy <- function(file, rows = Inf){
   df
 }
 
-
 ```
 
 ## Transforming Data for Applet
@@ -184,7 +204,7 @@ I wrote another function which will combine tidied *O~3~* and *NO~2~* datasets,[
 
 [^3]: Note this uses inner_join, so only O3 and NO2 values from stations found in BOTH datasets will be included.
 
-```{r, message = FALSE, warning = FALSE, error = FALSE}
+```{r,eval = FALSE, message = FALSE, warning = FALSE, error = FALSE}
 # Test data to combine 
 NO2 <- ECCCTidy("NO2_2018.csv", rows = 2500)
 O3 <- ECCCTidy("O3_2018.csv", rows = 2500)
@@ -200,48 +220,6 @@ ECCCCombine <- function(O3, NO2){
 
 ```
 
-The `ECCCCombine` function is pretty basic right now, but in the future I hope to expand it so that :
-
--   Users can directly specify the ECCC files they want to use
--   Multiple pollutants can be included such as SO~2~, NO, and maybe stuff like PM~2.5~; essentially any ECCC formatted `.csv`.
--   Clean up the naming conventions to avoid duplication, etc.
-
-The end result of this function will be saved as a `.csv` and *this will be the file uploaded to and used by the applet*.
-
-Quickly plotting the combined ECCC data shows that the NAs are properly plotted as gaps in the timeseries, and that everything is kosher.
-
-```{r, message = FALSE, echo = FALSE, warning = FALSE, fig.height = 4, fig.cap = "Example plots from datasets. (A) Plot at single NAPS station of O3, NO2, and Ox values. (B) O3 values for different stations. Note gaps in time series"}
-
-library(ggpubr)
-
-x <- ECCCCombine(O3, NO2)
-
-#write.csv(x = x, file = "www/ECCCCombined_2018_test.csv")
-
-p <- ggplot(subset(x, City_NAPS == c("St Johns, NAPS: 10102"))) +
-      geom_line(aes(x = Date_time, y = O3, colour = "O3")) +
-      geom_line(aes(x = Date_time, y = NO2, colour = "NO2")) +
-      geom_line(aes(x = Date_time, y = Ox, colour = "Ox")) + 
-      theme(legend.position="right") +
-      scale_x_datetime()
-
-q <- ggplot(subset(x, City_NAPS == c("St Johns, NAPS: 10102", "Mount Pearl, NAPS: 10401")), 
-          aes(x = Date_time, y = O3)) +
-      geom_line() +
-      facet_grid(vars(City_NAPS)) +
-      scale_x_datetime()
-
-
-ggarrange(p,q,
-          labels = c("A", "B"), 
-          nrow = 2)
-
-```
-
-
-
 # Notes for the downstream stuff
 
 -   As it stands, combining all of the ECCC data into columns is easier than a massively long .csv (plus if I want to be able to export datasets to excel, this is the way (will need to fix date though...)). However., the 'long' format is easier w/ ggplot2, so it may be a good idea to convert to 'long' the subset of data to be plotted to take advantage of ggplot2 features...
-
--   Will need to add a rolling average feature to applet
