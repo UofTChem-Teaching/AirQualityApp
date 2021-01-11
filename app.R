@@ -10,11 +10,9 @@ library(anytime) # quicker than lubridate
 library(zoo) # rolling averages
 library(plotly) # interactive plots 
 
-data <- data.table::fread("www/ECCC2018_wideCombined.csv")
+data <- data.table::fread("www/ECCC2018_wideCombined.csv") 
 
-mapInfo <- data %>%
-    distinct(NAPS, .keep_all = TRUE) %>%
-    select(c(NAPS, Latitude, Longitude, Population, PopSize)) 
+mapInfo <- data.table::fread("www/ECCC2018_mapInfo.csv")
 
 ## 1.2 Custom icons for population size ================================= 
 
@@ -29,12 +27,6 @@ leafIcons <- icons(
     )
 
 ## 1.3 Descriptive text for map icon popups ================================= 
-# labs <- lapply(seq(nrow(mapInfo)), function(i) {
-#     paste0(mapInfo[i, "City"], '<br>',
-#            'NAPS', mapInfo[i, "NAPSID"], '<br>',
-#            'Population: ', mapInfo[i, "Population"],'<br>',
-#            'Size: ', mapInfo[i, "PopSize"])
-# })
 
 labs <- lapply(seq(nrow(mapInfo)), function(i) {
     paste0( '<p>',
@@ -49,7 +41,7 @@ labs <- lapply(seq(nrow(mapInfo)), function(i) {
 ui <- fluidPage(
 
     ## 2.1 App title =====================================
-    titlePanel("Exploring CHM 135 Air Quality Data"),
+    titlePanel("CHM135: Exploring Air Quality Data"),
     
     ## 2.2 Sidebar Inputs ==================== 
     sidebarLayout(
@@ -78,18 +70,17 @@ ui <- fluidPage(
             
             tabsetPanel(type = "tabs",
                         tabPanel("Welcome", 
-                                 h3("Welcome CHM 135 Students"),
-                                 br(),
-                                 p("more text here to introduce the app, functions, etc.")),
+                                 includeHTML("www/welcome.html")),
                         tabPanel("Plot",
                                  plotlyOutput("TimeseriesPlot"),
                                  br(),
-                                 p("You can interact with the time series plot above; i.e. narrowing displayed date range. Note however that the date range for both plots is dictated by your inputted dates. In other words, you’ll need to change your inputted dates to update the data displayed on the correlation plot.", style = "font-family: 'times'; font-si16pt"),
+                                 p("You can interact with the time series plot above; i.e. narrowing displayed date range. Note however that the date range for both plots is dictated by your inputted dates. In other words, you’ll need to change your inputted dates to update the data displayed on the correlation plot. To save as an image, use the download button in the top-left (time-series) or right-click and save as (correlation)", style = "font-family: 'times'; font-si16pt"),
                                  plotOutput("CompPlot")),
                         tabPanel("Summary Stats", 
                                  br(),
                                  DT::dataTableOutput("SumTable")),
-                        tabPanel("Notes", "Notes go here. data from Blah Blah Blah, UofT This Blah Blah Blah. Hi mom!")
+                        tabPanel("Notes", 
+                                 includeHTML("www/notes.html"))
             )
         )
     )
