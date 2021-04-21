@@ -88,16 +88,17 @@ surveyData <- full_join(cleanAprSurvey, cleanFebSurvey)
 
 ```{r, error = FALSE, message = FALSE, warning = FALSE}
 
+surveyData <- read_csv("./SurveyData/Lab1SurveyData.csv") %>%
+  filter(time == "Apr. 2021")
 
-
-surveyPlot <- function(q, df = shortSurveyQs, axisWidth = 30, subWidth = 60){
+surveyPlot <- function(q, df, axisWidth = 30, subWidth = 60, colour = time){
   
   df <- subset(df, QuestionID == q) 
   
   question <- str_wrap(unique(df$Question), subWidth)
 
-  ggplot(df, aes(x = Answer, y = n)) +
-    geom_segment( aes(x=Answer, xend=Answer, y=0, yend=n), colour = "#BB133E") +
+  ggplot(df, aes(x = Answer, y = count)) +
+    geom_segment( aes(x=Answer, xend=Answer, y=0, yend=count), colour = "#BB133E") +
     geom_point( color="#00204E", size=4) +
     labs(subtitle = question) +
     ylab("Count") +
@@ -116,9 +117,9 @@ surveyPlot <- function(q, df = shortSurveyQs, axisWidth = 30, subWidth = 60){
    
 }
 
-p1 <- surveyPlot(q = 2)
-p2 <- surveyPlot(q = 3)
-p3 <- surveyPlot(q = 4)
+p1 <- surveyPlot(q = 2, df = surveyData)
+p2 <- surveyPlot(q = 3, df = surveyData)
+p3 <- surveyPlot(q = 4, df = surveyData)
 
 #gridExtra::grid.arrange(p1, p2, p3, ncol = 1)
 cowplot::plot_grid(p1, p2, p3, ncol = 1, align = "v")
