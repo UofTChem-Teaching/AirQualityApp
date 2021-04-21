@@ -1,0 +1,126 @@
+---
+title: "CHM 135 Lab 1 Survey Results - Part 1"
+runningheader: "CHM 135 Lab 1 Survey Results" # only for pdf output
+author: "David Hall"
+date: "`r Sys.Date()`"
+output:
+  tufte::tufte_html: default
+  tufte::tufte_handout:
+    citation_package: natbib
+    latex_engine: xelatex
+  tufte::tufte_book:
+    citation_package: natbib
+    latex_engine: xelatex
+bibliography: skeleton.bib
+link-citations: yes
+---
+
+```{r setup, include=FALSE}
+library(tufte)
+library(tidyverse)
+library(scales) #for text wrap on x-axis
+
+# invalidate cache when the tufte version changes
+# knitr::opts_chunk$set(cache.extra = packageVersion('tufte'))
+# options(htmltools.dir.version = FALSE)
+```
+
+```{r, error = FALSE, message = FALSE, warning = FALSE}
+# 1. Cleaning up and amagamating survey data
+
+## 1.1 - Feb 2021 question from Lab 2 report.
+
+my_files <- list.files(path = "./SurveyData/", pattern = "\\Exp2Report.csv$", full.names = TRUE)
+
+my_data <- lapply(my_files, read_csv, col_names = FALSE, skip = 1)
+
+names(my_data) <- stringr::str_replace_all(my_files, c(".csv" = "", "./SurveyData/" = "", "_Exp2Report" = ""))
+
+febSurvey <- within(my_data, rm(PRA0301)) %>% # Survey data not in practical PRA0301
+  bind_rows() %>%
+  select(X57) %>%
+  rename(Answer = X57) %>%
+  drop_na() 
+
+## 1.2 - Cleaning up answer text
+
+question <- "Do you feel Lab #1 increased your confidence using Excel?"
+
+cleanFebSurvey <- febSurvey %>%
+  group_by(Answer) %>%
+  mutate(count = n()) %>% # number of times answer was submitted
+  ungroup() %>%
+  distinct() %>% 
+  mutate(Answer = str_replace_all( Answer, fixed("\\"),"")) %>% # removing backslash from answers
+  filter(str_count(Answer, ",") <= 1) %>% # removing respondents with multiple answers 
+  mutate(Question = paste(question)) %>%
+  mutate(time = paste("Feb. 2021")) %>%
+  mutate(QuestionID = 4)
+
+## 1.3 - Getting April Survey results 
+
+aprSurvey <- read_csv("./SurveyData/CHM135Winter2021_Lab1_Survey2.csv") %>%
+  select(-c('Start time', 'Completion time', 'Email', 'Name')) %>%
+  pivot_longer(cols = -ID,
+               names_to = "Question", 
+               values_to = "Answer") %>%
+  mutate(across(where(is.character), ~na_if(., "N/A")))  
+  
+cleanAprSurvey <- aprSurvey %>%  
+  mutate(QuestionID = group_indices(aprSurvey, .dots=c("Question"))) %>%
+  #filter(QuestionID %in% c(2,3,4)) %>%
+  drop_na() %>%
+  group_by(Question, QuestionID, Answer, ) %>%
+  summarise(count = n()) %>%
+  ungroup() %>%
+  mutate(time = paste("Apr. 2021"))
+  
+
+### 1.4 - Combining Feb and Apr survey data 
+
+surveyData <- full_join(cleanAprSurvey, cleanFebSurvey) 
+
+### 2.0 - Writting full survey results to .csv
+
+#write.csv(x = surveyData, file = "./SurveyData/Lab1SurveyData.csv", row.names = FALSE)
+
+```
+
+```{r, error = FALSE, message = FALSE, warning = FALSE}
+
+
+
+surveyPlot <- function(q, df = shortSurveyQs, axisWidth = 30, subWidth = 60){
+  
+  df <- subset(df, QuestionID == q) 
+  
+  question <- str_wrap(unique(df$Question), subWidth)
+
+  ggplot(df, aes(x = Answer, y = n)) +
+    geom_segment( aes(x=Answer, xend=Answer, y=0, yend=n), colour = "#BB133E") +
+    geom_point( color="#00204E", size=4) +
+    labs(subtitle = question) +
+    ylab("Count") +
+    xlab("") +
+    expand_limits(y = 20) +
+    coord_flip() +
+    scale_y_continuous(minor_breaks = seq(0, 25, 5)) +
+    scale_x_discrete(labels = label_wrap(40)) +
+    theme_light() +
+    theme(
+      panel.grid.major.y = element_blank(),
+      panel.border = element_blank(),
+      axis.ticks.y = element_blank()
+      )
+    
+   
+}
+
+p1 <- surveyPlot(q = 2)
+p2 <- surveyPlot(q = 3)
+p3 <- surveyPlot(q = 4)
+
+#gridExtra::grid.arrange(p1, p2, p3, ncol = 1)
+cowplot::plot_grid(p1, p2, p3, ncol = 1, align = "v")
+```
+
