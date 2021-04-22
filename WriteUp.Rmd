@@ -14,6 +14,7 @@ library(tidyverse)
 library(scales)     # for text wrap on x-axis
 library(lubridate)  # for app metrics date conversions
 library(cowplot)    # for app metrics multiplot
+library(kableExtra)
 
 knitr::opts_chunk$set(echo = TRUE)
 ```
@@ -176,6 +177,18 @@ plot_grid(p1, p2, ncol = 1, align = "v")
 # Conclusions
 
 # Supporting Information
+
+```{r long-Feedback, echo = FALSE, error = FALSE, message = FALSE, warning = FALSE}
+
+surveyQ1 <- surveyData %>%
+  filter(QuestionID == 1)
+
+Q1 <- paste( "Student responses to: ", unique(surveyQ1$Question))
+
+knitr::kable(select(surveyQ1, Answer), caption = (Q1))
+
+```
+
 
 # Author Information
 
