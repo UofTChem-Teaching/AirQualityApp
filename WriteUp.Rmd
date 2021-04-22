@@ -4,8 +4,8 @@ title: How's the Air Out There? Using a National Air Quality Database to Introdu
 author: "David Hall and Jessica D'eon (Corresponding Author)"
 date: "19/03/2021"
 output:
-  word_document: default
   html_document: default
+  word_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -23,26 +23,23 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Introduction
 
-Whether we like it or not we're living in an age of data, and the world of chemistry is no exception. From big-data atmospheric chemistry in climate-change models to machine-learning organic synthesis, every domain of chemistry is increasingly relying upon data-driven science. Consequently, undergraduate chemistry curriculums need to adapt to better prepare the next-generation of chemists. An oft-overlooked aspect of this is how exactly data (measurements, signals, etc.) are transformed into information (trends, correlation) and finally into knowledge. Moreover, the explicit teaching of these concepts is often neglected resulting in creasing student frustration. Motivated by this, and the need to transfer to a virtual laboratory environment as a result of Covid-19 social distancing restrictions, we sough to develop a new, remove learning compatible, experiment. 
+Whether we like it or not we're living in an age of data, and the world of chemistry is no exception. From big-data atmospheric chemistry in climate-change models to machine-learning organic synthesis, every domain of chemistry is increasingly relying upon data-driven science. Consequently, undergraduate chemistry curriculums need to adapt to better prepare the next-generation of chemists. An oft-overlooked aspect of this is how exactly data (measurements, signals, etc.) are transformed into information (trends, correlation) and finally into knowledge. Moreover, the explicit teaching of these concepts is often neglected resulting in creasing student frustration. Motivated by this, and the need to transfer to a virtual laboratory environment as a result of Covid-19 social distancing restrictions, we sough to develop a new, remove learning compatible, experiment.
 
 Real data is often imperfect and permeated with outliers and the fingerprints of gross experimental errors; data soon to be collected by undergraduate chemist is no different. However, acquiring sufficient data for analysis if often stressful for undergraduate students given time- and equipment-constraints in the teaching laboratory. To compensate for this, we chose to integrate actual measurements of atmospheric chemicals
 
-Prominent atmospheric pollutants are structurally simple, and undergo reaction schemes comparable to those covered in introductory chemistry lectures. Ozone (O~3~) and nitrogen dioxide (NO~2~) are two choice candidates for analysis by undergraduate students. They are structurally simple molecules, and undergo reaction schemes comparable to those covered in introductory chemistry lectures. Notable of these compounds is their interdependent diurnal cycles. The relationship between O3~ and NO~2~ is so intimate, the term "odd-oxygen" (O~x~) is used to express the sum of these two compounds, although the between O~3~ and NO~2~  can vary with environmental and anthorpogenic influences. Fortunately, with hourly measurements of O~3~ and NO~2~ since 1975, Environment and Climate Change Canada (ECCC) National Airborne Pollutants Surveillance (NAPS) program, there is no shortage of data to be analyzed.
+Prominent atmospheric pollutants are structurally simple, and undergo reaction schemes comparable to those covered in introductory chemistry lectures. Ozone (O~3~) and nitrogen dioxide (NO~2~) are two choice candidates for analysis by undergraduate students. They are structurally simple molecules, and undergo reaction schemes comparable to those covered in introductory chemistry lectures. Notable of these compounds is their interdependent diurnal cycles. The relationship between O3\~ and NO~2~ is so intimate, the term "odd-oxygen" (O~x~) is used to express the sum of these two compounds, although the between O~3~ and NO~2~ can vary with environmental and anthropogenic influences. Fortunately, with hourly measurements of O~3~ and NO~2~ since 1975, Environment and Climate Change Canada (ECCC) National Airborne Pollutants Surveillance (NAPS) program, there is no shortage of data to be analyzed.
 
-Our Air quality lab described herein, is the result of our efforts. In this new experiment, first year students are introduced to fundamental data analysis concepts as they explore some of the chemistry of atmospheric chemical pollutants.  
+Our Air quality lab described herein, is the result of our efforts. In this new experiment, first year students are introduced to fundamental data analysis concepts as they explore some of the chemistry of atmospheric chemical pollutants.
 
 # Experimental Overview And Pedagogical Goals
 
-This 3 hr data-analysis laboratory exercise uses publicly available data and open-source code (described in the Supplementary information), and has been run successfully in in the one-semester general chemistry course entitled "Chemistry: Phyiscal Principles" at the University of Toronto since Summer 2020. This course is most often conducted in the first-term of the first-year of life-sciences/chemistry students. This exercise is the first-lab of five and is designed as much as an tutorial on data-analysis and Microsoft excel as it is to explore atmospheric chemistry. It is divided into three parts: 
+This 3 hr data-analysis laboratory exercise uses publicly available data and open-source code (described in the Supplementary information), and has been run successfully in in the one-semester general chemistry course entitled "Chemistry: Physical Principles" at the University of Toronto since Summer 2020. This course is most often conducted in the first-term of the first-year of life-sciences/chemistry students. This exercise is the first-lab of five and is designed as much as an tutorial on data-analysis and Microsoft excel as it is to explore atmospheric chemistry. It is divided into three parts:
 
-Part A consist of pre-laboratory exercises featuring explanatory videos and material introducing gas phase chemistry questions. The aim of this part is to situate students in the chemistry that forms the basis of their data analysis. 
+Part A consist of pre-laboratory exercises featuring explanatory videos and material introducing gas phase chemistry questions. The aim of this part is to situate students in the chemistry that forms the basis of their data analysis.
 
-In Part B students are randomly assigned a 7-day snapshot of hourly O~3~ and NO~2~ measurements  
-
+In Part B students are randomly assigned a 7-day snapshot of hourly O~3~ and NO~2~ measurements
 
 # Results and Pedagogical Outcomes
-
-
 
 ```{r  importing-survey-results, echo = FALSE, error = FALSE, message = FALSE, warning = FALSE}
 
@@ -56,8 +53,7 @@ surveyData <- read_csv("./dataForPaper/Lab1SurveyData.csv") %>%
 
 From n=`r sum(subset(surveyData, QuestionID == 4)$count)`
 
-
-```{r  plot-survey-results, fig.height = 7, echo = FALSE, error = FALSE, message = FALSE, warning = FALSE}
+```{r  plot-survey-results, fig.height = 7, echo = FALSE, error = FALSE, message = FALSE, warning = FALSE, fig.cap="End of term student survey results for Lab 1."}
 
 surveyPlot <- function(q, df, axisWidth = 30, subWidth = 40){
   
@@ -94,7 +90,6 @@ p3 <- surveyPlot(q = 4, df = surveyData)
 cowplot::plot_grid(p1, p2, p3, ncol = 1, align = "v")
 
 ```
-
 
 ```{r app-connections_data-manipulation, echo = FALSE, error = FALSE, message = FALSE, warning = FALSE}
 
@@ -189,8 +184,11 @@ knitr::kable(select(surveyQ1, Answer), caption = (Q1))
 
 ```
 
-
 # Author Information
+
+David Hall, Department of Chemistry and School of the Environment, University of Toronto.
+
+Jessica D'eon, Department of Chemistry and School of the Environment, University of Toronto.
 
 # Acknowledgements
 
