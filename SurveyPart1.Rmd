@@ -30,7 +30,7 @@ library(scales) #for text wrap on x-axis
 
 ## 1.1 - Feb 2021 question from Lab 2 report.
 
-my_files <- list.files(path = "./SurveyData/", pattern = "\\Exp2Report.csv$", full.names = TRUE)
+my_files <- list.files(path = "./dataForPaper/", pattern = "\\Exp2Report.csv$", full.names = TRUE)
 
 my_data <- lapply(my_files, read_csv, col_names = FALSE, skip = 1)
 
@@ -59,7 +59,7 @@ cleanFebSurvey <- febSurvey %>%
 
 ## 1.3 - Getting April Survey results 
 
-aprSurvey <- read_csv("./SurveyData/CHM135Winter2021_Lab1_Survey2.csv") %>%
+aprSurvey <- read_csv("./dataForPaper/CHM135Winter2021_Lab1_Survey2.csv") %>%
   select(-c('Start time', 'Completion time', 'Email', 'Name')) %>%
   pivot_longer(cols = -ID,
                names_to = "Question", 
@@ -88,7 +88,7 @@ surveyData <- full_join(cleanAprSurvey, cleanFebSurvey)
 
 ```{r, error = FALSE, message = FALSE, warning = FALSE}
 
-surveyData <- read_csv("./SurveyData/Lab1SurveyData.csv") %>%
+surveyData <- read_csv("./dataForPaper/Lab1SurveyData.csv") %>%
   filter(time == "Apr. 2021")
 
 surveyPlot <- function(q, df, axisWidth = 30, subWidth = 60, colour = time){

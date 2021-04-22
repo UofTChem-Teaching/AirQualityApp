@@ -58,7 +58,7 @@ colnames(df) <- c("connect_count", "metricSeries", "connect_procs", "timestamp" 
 
 # Container data spanning lab period
 
-df <- read.csv("container_status_Practical1.csv") %>% 
+df <- read.csv("./dataForPaper/container_status_Practical1.csv") %>% 
   mutate(date=as.POSIXct(as.numeric(as.character(timestamp)),origin="1970-01-01")) %>% 
   mutate(connect_count = as.numeric(connect_count)) %>%
   mutate(connect_procs = as.numeric(connect_procs))
