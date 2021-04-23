@@ -4,8 +4,11 @@ title: How's the Air Out There? Using a National Air Quality Database to Introdu
 author: "David Hall and Jessica D'eon (Corresponding Author)"
 date: "19/03/2021"
 output:
-  html_document: default
-  word_document: default
+  bookdown::word_document2: default
+  html_document:
+    df_print: paged
+  bookdown::html_document2: default
+bibliography: references.bib
 ---
 
 ```{r setup, include=FALSE}
@@ -16,6 +19,14 @@ library(lubridate)  # for app metrics date conversions
 library(cowplot)    # for app metrics multiplot
 library(kableExtra)
 
+library(ggpubr)
+library(ggpmisc)
+library(ggExtra)
+library(openxlsx)
+library(RcppRoll)
+
+library(gridExtra)
+library(grid)
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
@@ -33,11 +44,126 @@ Our Air quality lab described herein, is the result of our efforts. In this new 
 
 # Experimental Overview And Pedagogical Goals
 
-This 3 hr data-analysis laboratory exercise uses publicly available data and open-source code (described in the Supplementary information), and has been run successfully in in the one-semester general chemistry course entitled "Chemistry: Physical Principles" at the University of Toronto since Summer 2020. This course is most often conducted in the first-term of the first-year of life-sciences/chemistry students. This exercise is the first-lab of five and is designed as much as an tutorial on data-analysis and Microsoft excel as it is to explore atmospheric chemistry. It is divided into three parts:
+This 3 hr data-analysis laboratory exercise uses publicly available data and open-source code (described in the Supplementary information), and has been run successfully in in the one-semester general chemistry course entitled "Chemistry: Physical Principles" at the University of Toronto since Summer 2020. This course is most often conducted in the first-term of the first-year of life-sciences/chemistry students. This exercise is the first-lab of five and is designed as much as an tutorial on data-analysis and Microsoft excel as it is to explore atmospheric chemistry. It is divided into three parts: the prelab, data analysis in Excel, and eventually data exploration and hypothesis generation.
 
-Part A consist of pre-laboratory exercises featuring explanatory videos and material introducing gas phase chemistry questions. The aim of this part is to situate students in the chemistry that forms the basis of their data analysis.
+The prelab follows the traditional approach, and is written to situate students in the relevant chemistry for the upcoming analysis. Specifically for this lab we create explanatory videos and material introducing gas phase chemistry, and relating the lab content to concurrent lecture material.
 
-In Part B students are randomly assigned a 7-day snapshot of hourly O~3~ and NO~2~ measurements
+In the data analysis portion of the lab students are randomly assigned two datasets. Each dataset is a 7-day snapshots of hourly O~3~ and NO~2~ measurements taken from the NAPS program. The datasets are all from the same NAPS surveillance station for a given year. For our purposes we chose a different downtown Toronto NAPS station for each successive iteration of the lab. The two datasets correspond to 7-days in the winter and 7-days in the summer. How these datasets are generated are discussed below. Students are provided with a written handbook detailing the necessary Excel operations, and an synchronous online session with their TA. Working through the lab exercises students are explicitly taught data analysis workflows, modelled after that recommended by Hadley and Grolemund[@Wickham2017]:
+
+1.  *Importing* their assigned comma serrated values (.csv) data sets into Excel.
+2.  *Tidying* their data and setting up their worksheets. This step consists of formatting cells to properly display values and handling missing data. Specifically for this lab, the NAPS dataset stores missing values as '-999', which can be interpreted literally by Excel.
+3.  *Visualizing* their quantitative data by creating a time-series plot of time vs. concentration of each pollutant, see Figure \@ref(fig:example-plots).
+4.  *Transforming* their data using mathematical operators in Excel to calculate total oxidant and adding it to their time-series plot as well as calculating 8hr moving averages.
+5.  *Modelling* a linear relationship between [O~3~] and [NO~2~] to qualitatively assess the negative relationship between these two contaminants.
+6.  *Communicating* and exploring their results through a series of accompanying questions.
+
+```{r example-plots, fig.margin=TRUE, echo = FALSE, message = FALSE, warning=FALSE, fig.height = 7, fig.cap = "Example of plots students are expected to create. (A) time-series of pollutants across 7 winter days. (B) Correlation plot of O3 and NO2 concentrations with linear regression in the winter and (C) summer data sets. (D) Example plot if a '-999' value wasn't removed."}
+
+data <- read.csv("./dataForPaper/Toronto_60410_2018_Day10to16.csv", header = TRUE)
+
+dataSummer <- read.csv("./dataForPaper/Toronto_60410_2018_Day189to195.csv", header = TRUE)
+
+data <- data %>%
+  mutate(time = convertToDateTime(data$Date, origin = "1900-01-01")) %>%
+  filter(O3 != -999) %>%
+  filter(NO2 != -999) %>%
+  mutate(OX = NO2 + O3)
+
+### Making data tidyR friendly --------------------------------------------------
+dataCol <- data %>%
+  select(-c("Date")) %>%
+  pivot_longer(-time, names_to = "pollutant", values_to = "concentration")
+
+
+dataSummer <- dataSummer %>%
+  mutate(time = convertToDateTime(dataSummer$Date, origin = "1900-01-01")) %>%
+  filter(O3 != -999) %>%
+  filter(NO2 != -999) %>%
+  mutate(OX = NO2 + O3)
+
+### Making data tidyR friendly --------------------------------------------------
+dataSummerCol <- dataSummer %>%
+  select(-c("Date")) %>%
+  pivot_longer(-time, names_to = "pollutant", values_to = "concentration")
+
+### Time series ----------------
+a <- ggplot(data = dataCol, aes(x = time, y = concentration, color = pollutant)) +
+  geom_line(size = 1) +
+  theme_classic() +
+   theme(text = element_text(size = 12),
+         legend.position = "right") +
+  ylab(bquote('Conc., ppb')) +
+  xlab(bquote('Time')) 
+
+### Correlation plot with Linear regression and equation -------------------------
+
+formula <- y ~ x ### Need to keep this so LM regression appears on plot
+
+b <- ggplot(data = data, aes(x = NO2, y = O3)) +
+  geom_point(size = 0.5) + 
+  scale_x_continuous(expand = c(0, 0), limits = c(0, 45)) + 
+  scale_y_continuous(expand = c(0, 0), limits = c(0, 70)) +
+  theme_classic() +
+  theme(text = element_text(size = 12))+
+  xlab(bquote('Conc.' ~NO[2]~', ppb')) +
+  ylab(bquote('Conc.' ~O[3]~', ppb')) +
+  geom_smooth(method = "lm", formula = formula, se = FALSE) +
+    stat_poly_eq(aes(label =  paste(stat(rr.label), sep = "*\", \"*")),
+               formula = formula, rr.digits = 4 , parse = TRUE, label.y = 0.25, label.x = 0.95, size = 4)+
+  annotate("text", x =35, y = 33, label = "winter")
+
+c <- ggplot(data = dataSummer, aes(x = NO2, y = O3)) +
+  geom_point(size = 0.5) + 
+  scale_x_continuous(expand = c(0, 0), limits = c(0, 45)) + 
+  scale_y_continuous(expand = c(0, 0), limits = c(0, 70)) +
+  theme_classic() +
+  theme(text = element_text(size = 12))+
+  xlab(bquote('Conc.' ~NO[2]~', ppb')) +
+  ylab(bquote('Conc.' ~O[3]~', ppb')) +
+  geom_smooth(method = "lm", formula = formula, se = FALSE) +
+    stat_poly_eq(aes(label =  paste(stat(rr.label), sep = "*\", \"*")),
+               formula = formula, rr.digits = 4 , parse = TRUE, label.y = 0.25, label.x = 0.95, size = 4) +
+  annotate("text", x =36, y = 33, label = "summer")
+
+# -999 value for example
+
+dataSummer[2,3] = -999
+  
+d <- ggplot(data = dataSummer, aes(x = NO2, y = O3)) +
+  geom_point(size = 0.5) + 
+  scale_x_continuous(expand = c(0, 0), limits = c(0, 45)) + 
+  scale_y_continuous(expand = c(0, 0), limits = c(-1050, 70)) +
+  theme_classic() +
+  theme(text = element_text(size = 12))+
+  xlab(bquote('Conc.' ~NO[2]~', ppb')) +
+  ylab(bquote('Conc.' ~O[3]~', ppb')) +
+  geom_segment(aes(x = 22, y = -600, xend = 16.5, yend = -950),
+                  arrow = arrow(length = unit(0.5, "cm"))) +
+  annotate("text", x = 32, y = -550, label = "error from analysis")
+
+gt <- arrangeGrob(a, b, c, d,                               
+             ncol = 2, nrow = 2)
+# Add labels to the arranged plots
+p <- as_ggplot(gt) +                                # transform to a ggplot
+  draw_plot_label(label = c("A", "B", "C", "D"), size = 16,
+                  x = c(0, 0.5, 0, 0.5), y = c(1, 1, 0.5, 0.5)) # Add labels
+p
+
+```
+
+The last step in this workflow is expanded in the final part of the lab where students compare their results to the complete NAPS dataset from which their assigned datasets originated from. Here they are encouraged to generate hypotheses based on their own data, and their *a priori* chemical knowledge introduced in the prelab. To this end, we created an interactive online application that students visit using *R* and *Shiny*. This application consist of an interactive map showing the location, and local population, of every NAPS surveillance station. Students can then select any station and time-span, and a time-series and correlation plot, similar to the ones they created themselves, are automatically generated. This allows them to rapidly compare their data to any number of stations, simultaneously relieving them of the burden of repetitive and tedious data analysis and facilitating hypothesis generation and data exploration. Accompanying questions prompt students to explore and reason differences in O~3~ and NO~2~ correlation between urban and rural areas, as well as between winter and summer datasets. See the [Supporting Information] or <https://davidrosshall.shinyapps.io/AirQualityApp/> for details on the application.
+
+## Leveraging R to automate and expand the lab
+
+We made prodigeous use of *R* and various associated frameworks to greatly facilitate many aspects of this lab. Greater details and source code can be found in the [Supporting Information], but a brief discussion is warranted, if anythigne lse, to help encourage readers to harness *R* (or similar data science languages) to both simplify their own workload, while expanding course content.
+
+Firstly, the generation of the 7-day datasets. The NAPS hourly information is recorded for each individual station in separate `.csv` files. These expansive datasets include the measurements from every NAPS stations (n > 150), and are organized in a matrix style. For first-year students, accessing, subsetting, and tidying these datasets is immediately intimidating and tedious as they often exceed tens of thousands of rows and contain a number of information not necessary for their work. To counteract this, we used *R* to combine O~3~ and NO~2~ measurements, remove bilingual headers, ancillary columns, etc., and transformed the data from the 'wide' matrix style to the 'long' columnar format so data is easier to manipulate in Excel. Then, using *R*, we generate a specific number of student datasets using a 7-day moving window of the year-long data. I.e. data set 1 is Jan. 1st to the 7th, data set 2 is Jan 2nd to 8th, etc, with complimentary summer data sets taken from July 1st onward. The rolling window ensure every student can be assigned a unique dataset, while largely looking at similar data. We also randomly insert a '-999' missing value into each data set ensuring students will encounter it during their analysis. Each data set is then automatically saved as a .csv file.
+
+Secondly, we wrote an *R markdown* script that generates a PDF with the analysis results of every generated data sets. The answer sheet analysis mirrors the one students carry out, providing TAs with an actual analysis of every dataset, allowing them to quickly check each students submission, and relieving them of the burden of verifying each dataset.
+
+Thirdly, using we wrote an interactive application using *R* and *Shiny*. This was created in-house specifically for this laboratory exercise. Thanks to the this, we were able to expand students working data from that directly provided to them, to the entire NAPS dataset. This would be impossible otherwise as students would not have the ability or time to explore the larger NAPS data in any practical manner given the tools we can provide to them. As well, by allowing students to explore the entire dataset, it creates oppertunities for them to explore data 'unknown' to the instructors. In otherwords, students are excited to make real connections and discovries with real data, rather then tediously analysis an increasing number of provided data. See the [Supplementary Information] for more details on the app, and how you can recycle our code to create your own version of the application if you want to run this lab. 
+
+Lastly, our code can accept any standard formatted NAPS dataset, and instructors can readily select the NAPS station, the number of datasets, the overlap between datasets, etc. so course material can easily be updated for each iteration of the lab, or between different lab sections. See the [Supplementary Information] for the source-code for isntructions on generating datasets.
 
 # Results and Pedagogical Outcomes
 
