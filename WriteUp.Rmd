@@ -306,6 +306,8 @@ A brief comment for the unaware: running a Shiny app requires server side comput
 
 # Conclusions
 
+We sought to create a new introductory lab experiment to expressly teach incoming students foundational components of data analysis/science as well as practical instructions on how to use Microsoft Excel for future courses. To this end, we leveraged the R computer language for the automated, and scalable, generation of unique data from real world atmospheric measurements from the NAPS that served as the foundation of our introductory data science lab. Alongside written instructions on how to use Excel, we developed an online interactive App, allowing students to readily explore the entire NAPS dataset to compliment their individual analyses. Our efforts were rewarded with students being better equipped to tackle subsequent data analysis challenges in the following lab, in addition to arming them with skills they will assuredly make use of outside of the first-year chemistry laboratory. 
+
 # Supporting Information
 
 ```{r lab1-Feedback, echo = FALSE, error = FALSE, message = FALSE, warning = FALSE}
