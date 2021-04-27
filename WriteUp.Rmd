@@ -4,10 +4,10 @@ title: How's the Air Out There? Using a National Air Quality Database to Introdu
 author: "David Hall and Jessica D'eon (Corresponding Author)"
 date: "19/03/2021"
 output:
-  bookdown::word_document2: default
+  bookdown::html_document2: default
   html_document:
     df_print: paged
-  bookdown::html_document2: default
+  bookdown::word_document2: default
 bibliography: references.bib
 ---
 
@@ -17,7 +17,6 @@ library(tidyverse)
 library(scales)     # for text wrap on x-axis
 library(lubridate)  # for app metrics date conversions
 library(cowplot)    # for app metrics multiplot
-library(kableExtra)
 
 library(ggpubr)
 library(ggpmisc)
@@ -157,13 +156,13 @@ The last step in this workflow is expanded in the final part of the lab where st
 
 We made prodigeous use of *R* and various associated frameworks to greatly facilitate many aspects of this lab. Greater details and source code can be found in the [Supporting Information], but a brief discussion is warranted, if anythigne lse, to help encourage readers to harness *R* (or similar data science languages) to both simplify their own workload, while expanding course content.
 
-Firstly, the generation of the 7-day datasets. The NAPS hourly information is recorded for each individual station in separate `.csv` files. These expansive datasets include the measurements from every NAPS stations (n > 150), and are organized in a matrix style. For first-year students, accessing, subsetting, and tidying these datasets is immediately intimidating and tedious as they often exceed tens of thousands of rows and contain a number of information not necessary for their work. To counteract this, we used *R* to combine O~3~ and NO~2~ measurements, remove bilingual headers, ancillary columns, etc., and transformed the data from the 'wide' matrix style to the 'long' columnar format so data is easier to manipulate in Excel. Then, using *R*, we generate a specific number of student datasets using a 7-day moving window of the year-long data. I.e. data set 1 is Jan. 1st to the 7th, data set 2 is Jan 2nd to 8th, etc, with complimentary summer data sets taken from July 1st onward. The rolling window ensure every student can be assigned a unique dataset, while largely looking at similar data. We also randomly insert a '-999' missing value into each data set ensuring students will encounter it during their analysis. Each data set is then automatically saved as a .csv file.
+Firstly, the generation of the 7-day datasets. The NAPS hourly information is recorded for each individual station in separate `.csv` files. These expansive datasets include the measurements from every NAPS stations (n \> 150), and are organized in a matrix style. For first-year students, accessing, subsetting, and tidying these datasets is immediately intimidating and tedious as they often exceed tens of thousands of rows and contain a number of information not necessary for their work. To counteract this, we used *R* to combine O~3~ and NO~2~ measurements, remove bilingual headers, ancillary columns, etc., and transformed the data from the 'wide' matrix style to the 'long' columnar format so data is easier to manipulate in Excel. Then, using *R*, we generate a specific number of student datasets using a 7-day moving window of the year-long data. I.e. data set 1 is Jan. 1st to the 7th, data set 2 is Jan 2nd to 8th, etc, with complimentary summer data sets taken from July 1st onward. The rolling window ensure every student can be assigned a unique dataset, while largely looking at similar data. We also randomly insert a '-999' missing value into each data set ensuring students will encounter it during their analysis. Each data set is then automatically saved as a .csv file.
 
 Secondly, we wrote an *R markdown* script that generates a PDF with the analysis results of every generated data sets. The answer sheet analysis mirrors the one students carry out, providing TAs with an actual analysis of every dataset, allowing them to quickly check each students submission, and relieving them of the burden of verifying each dataset.
 
-Thirdly, using we wrote an interactive application using *R* and *Shiny*. This was created in-house specifically for this laboratory exercise. Thanks to the this, we were able to expand students working data from that directly provided to them, to the entire NAPS dataset. This would be impossible otherwise as students would not have the ability or time to explore the larger NAPS data in any practical manner given the tools we can provide to them. As well, by allowing students to explore the entire dataset, it creates oppertunities for them to explore data 'unknown' to the instructors. In otherwords, students are excited to make real connections and discovries with real data, rather then tediously analysis an increasing number of provided data. See the [Supplementary Information] for more details on the app, and how you can recycle our code to create your own version of the application if you want to run this lab. 
+Thirdly, using we wrote an interactive application using *R* and *Shiny*. This was created in-house specifically for this laboratory exercise. Thanks to the this, we were able to expand students working data from that directly provided to them, to the entire NAPS dataset. This would be impossible otherwise as students would not have the ability or time to explore the larger NAPS data in any practical manner given the tools we can provide to them. As well, by allowing students to explore the entire dataset, it creates opportunities for them to explore data 'unknown' to the instructors. In other words, students are excited to make real connections and discoveries with real data, rather then tediously analysis an increasing number of provided data. See the [Supplementary Information] for more details on the app, and how you can recycle our code to create your own version of the application if you want to run this lab.
 
-Lastly, our code can accept any standard formatted NAPS dataset, and instructors can readily select the NAPS station, the number of datasets, the overlap between datasets, etc. so course material can easily be updated for each iteration of the lab, or between different lab sections. See the [Supplementary Information] for the source-code for isntructions on generating datasets.
+Lastly, our code can accept any standard formatted NAPS dataset, and instructors can readily select the NAPS station, the number of datasets, the overlap between datasets, etc. so course material can easily be updated for each iteration of the lab, or between different lab sections. See the [Supplementary Information] for the source-code for instructions on generating datasets.
 
 # Results and Pedagogical Outcomes
 
@@ -177,7 +176,7 @@ surveyData <- read_csv("./dataForPaper/Lab1SurveyData.csv") %>%
 
 ```
 
-From n=`r sum(subset(surveyData, QuestionID == 4)$count)`
+Based on the our surveys and feedback from students, the majority of students responded positively to the new learning experience. From our survey of students in the most recent interation of the Air Quality Lab in the winter 2021 term (n=`r sum(subset(surveyData, QuestionID == 4)$count)`), 68% of respondents stated they felt the Excel component of Lab 1 significantly helped them complete the other CHM135 labs more efficiently. (Figure \@ref(fig:plot-survey-results)). This is a welcomed improvement as students frequently complain about the time commitment required for the CHM135 lab component. Students also feel more confident with regards to overall interpretation of data (plots, trendlines) as well as towards their use of Excel in general (57%, and 64%, respectively) (Figure \@ref(fig:plot-survey-results)).  
 
 ```{r  plot-survey-results, fig.height = 7, echo = FALSE, error = FALSE, message = FALSE, warning = FALSE, fig.cap="End of term student survey results for Lab 1."}
 
@@ -216,6 +215,14 @@ p3 <- surveyPlot(q = 4, df = surveyData)
 cowplot::plot_grid(p1, p2, p3, ncol = 1, align = "v")
 
 ```
+
+Included in the survey was the option for students to provide any additional feedback on the lab. STudents expressed both positive and negative feedback to the Air Quality lab (See [Supporting Information] Table \@ref(fig:lab1-Feedback) for complete feedback). Students appreciated the introduction to Excel, the practical usefulness of the incorporated material, and the opportunity to analyze real world data offering a glimpse into environmental chemistry. However, students were also critical of how the material was implemented. Some experienced trouble with inconsistencies between the Excel instructions, and their version of Excel (although all UofT students are provided with free access to the latest version of Excel, with instructions provided in the aforementioned instructions document). Likewise, many students felt the Excel component should have been explicitly tough during the synchronous session, rather than these sessions focusing explicitly on lab material (i.e. data analysis vs. Excel operations). As there are no explicit prerequisites to knowing Excel for this course (or UofT overall), we opted not to directly teach students the basic workings of Excel in the synchronous session. Going forward, we feel that incorporating optional Excel help-sessions specifically to assist students with this component of the lab. 
+
+## Notes on the Air Quality Shiny App
+
+A major addition to this lab is the development of the Air Quality App using Shiny. This app is what allows students to readily explore the larger NAPS dataset without burdening them with lengthy data prep/analysis. While the idea of creating an app for a specific lab exercise may seem daunting, the flexibility and support of the Shiny framework greatly relieve one from the minutia of app development, allowing them to focus on how best to present their data to the target audience. The version of our app presented to students in the Winter 2021 term is available for viewing here: [https://davidrosshall.shinyapps.io/AirQualityApp/](https://davidrosshall.shinyapps.io/AirQualityApp/). We have also provided the complete source code and example datasets on Github: [https://github.com/DavidRossHall/AirQualityApp](https://github.com/DavidRossHall/AirQualityApp), and as a `.zip` in the supplementary information. Alongside these are instructions modifying, and running, this app for your course. 
+
+We chose not to capitalize on the abilities of Google analytics (although that is an option when creating Shiny Apps) to track student usage of the app. Instead, we were inferred app usage by tracking the number of accessions (i.e. times the app was used). As shown in Figure \@ref(fig:app-connections), despite publishing the course material more than a week prior to the synchronous lab sessions, students did not access the app in any meaningful numbers. Usage did increase after the synchronous session, where students were explicitly instructed to work on their Lab 1 reports, of which two questions specifically instruct students to access the Air Quality App. Predictably, app usage was highest immediately preceding the due date for the Lab 1 report; the implications of this are discussed below. As best we can tell, usage/interaction with the Air Quality app lasted on average 25 minutes, a respectable time given the brevity of the prompting questions, and the richness of the dataset. 
 
 ```{r app-connections_data-manipulation, echo = FALSE, error = FALSE, message = FALSE, warning = FALSE}
 
@@ -295,11 +302,13 @@ plot_grid(p1, p2, ncol = 1, align = "v")
 
 ```
 
+A brief comment for the unaware: running a Shiny app requires server side computing. In other words, as students select data to plot, a dedicated server must perform the necessary computations. While these requirements are not egregious, they are still to be considered if you plan on hosting your own instance of the app. While Shiny provides instructions and software for running the app on premise, we opted to host our app on the Shiny server cloud.As mentioned above, many students 'flashed' the app as the deadline appeared. Without adequate server space, this could increase load times, decrease responsiveness, and possibly crash the app. Shiny offers 15hrs/month of server time (time it takes to run the app), but this is unsuitable for the anticipated server loads once the App was released for all of the CHM135 lab sections. Consequently, for the 2021 Winter Term, there were slightly over ??? students, so we payed the *Standard* hosting package costing $99USD/month for 2000 hrs of server time, in addition to using the reliable Shiny servers. This was admittedly an excess of server time, but we chose to play it safe. Likewise, as the Air Quality App was only used during the first lab, we only needed to pay for one month of server time to account for all the lab sections. As we continue to experiment with creating purpose built apps for individual labs/courses, we will transition to local hosting. 
+
 # Conclusions
 
 # Supporting Information
 
-```{r long-Feedback, echo = FALSE, error = FALSE, message = FALSE, warning = FALSE}
+```{r lab1-Feedback, echo = FALSE, error = FALSE, message = FALSE, warning = FALSE}
 
 surveyQ1 <- surveyData %>%
   filter(QuestionID == 1)
@@ -307,6 +316,17 @@ surveyQ1 <- surveyData %>%
 Q1 <- paste( "Student responses to: ", unique(surveyQ1$Question))
 
 knitr::kable(select(surveyQ1, Answer), caption = (Q1))
+
+```
+
+```{r chm135-Feedback, echo = FALSE, error = FALSE, message = FALSE, warning = FALSE}
+
+surveyQ5 <- surveyData %>%
+  filter(QuestionID == 5)
+
+Q5 <- paste( "Student responses to: ", unique(surveyQ5$Question))
+
+knitr::kable(select(surveyQ5, Answer), caption = (Q5))
 
 ```
 
