@@ -37,7 +37,7 @@ There isn't much recorded by the Shiny server in terms of user metrics. The metr
 
 The Shiny server records the number of "connections", which can be interpreted as "an indivdual person connects to the app website". Note that there can be multiple connections for a given individual (i.e. they go to the website on two different days). Nonetheless, it provides a useful approximate for the number of people who've used the app. Figure 1 shows the app connections over time and days for both the Winter and Fall 2021 iterations. Predictably, the most connection are towards the tail end of the *Practical 1* synchronous sessions (Jan 18th to 22rd), and peaking over the weekend. 
 
-```{r app-connections-data, eval = FALSE, echo = FALSE, warning = FALSE, error = FALSE, message=FALSE}
+```{r app-connections_data, eval = FALSE, echo = FALSE, warning = FALSE, error = FALSE, message=FALSE}
 
 #Code modified from Simon Woodward, Stack Overflow; https://stackoverflow.com/a/53733859
 
@@ -63,34 +63,32 @@ colnames(df) <- c("connect_count", "metricSeries", "connect_procs", "timestamp" 
 
 
 
-```{r app-connections_data-manipulation, echo = FALSE, error = FALSE, message = FALSE, warning = FALSE}
+```{r app-connections_functions, echo = FALSE, error = FALSE, message = FALSE, warning = FALSE}
 
-# Container data spanning lab period
+conMetrics.cleanup <- function(file, startDate, endDate){
+  
+  # Collecting data spanning lab period
+  df <- read.csv(file) %>%
+    mutate(date=as.POSIXct(as.numeric(as.character(timestamp)),origin="1970-01-01")) %>% 
+    mutate(connect_count = as.numeric(connect_count)) %>%
+    mutate(connect_procs = as.numeric(connect_procs)) %>%
+    select(-timestamp) %>% 
+    filter(date > ymd_hms(startDate) & date < ymd_hms(endDate)) %>%
+   arrange(date) %>% 
+    mutate(
+     n_count=cumsum(connect_count),
+      n_procs=cumsum(connect_procs),
+      new_connect=case_when(
+        connect_count>lag(connect_count,1) ~ connect_count-lag(connect_count,1),
+        TRUE ~ 0),
+      n_connect=cumsum(new_connect) # approximate
+    ) %>% 
+    filter(n_count>0)
+  
+  df
+}
 
-df <- read.csv("./dataForPaper/container_status_Practical1.csv") %>% 
-  mutate(date=as.POSIXct(as.numeric(as.character(timestamp)),origin="1970-01-01")) %>% 
-  mutate(connect_count = as.numeric(connect_count)) %>%
-  mutate(connect_procs = as.numeric(connect_procs))
-
-# Subsetting data to cover Exp 1 period & getting number of connections
-
-df1 <- df %>%
-  select(-timestamp) %>% 
-  filter(date > ymd_hms("2021-01-10 00:00:00") & date < ymd_hms("2021-01-31 00:00:00")) %>%
-  arrange(date) %>% 
-  mutate(
-    n_count=cumsum(connect_count),
-    n_procs=cumsum(connect_procs),
-    new_connect=case_when(
-      connect_count>lag(connect_count,1) ~ connect_count-lag(connect_count,1),
-      TRUE ~ 0),
-    n_connect=cumsum(new_connect) # approximate
-  ) %>% 
-  filter(n_count>0)
-
-# Prep for cumsum plot
-
-# cumsum plot
+# plot of cumulative connections 
 
 cumsum.plot <- function(df){
   
@@ -102,8 +100,6 @@ cumsum.plot <- function(df){
     geom_line(aes(x=date, y=value))
   
   }
-
-cumsum.plot(df1)
 
 
 # col plot of connections per day
@@ -123,11 +119,34 @@ daycount.plot <- function(df){
   
 }
 
-daycount.plot(df1)
-
 
 
 ```
+
+```{r}
+
+# Jan2021 Data 
+
+fileJan2021 <- "./dataForPaper/container_status_Practical1.csv"
+
+Jan2021<- conMetrics.cleanup(file = fileJan2021, 
+                                startDate = "2021-01-10 00:00:00", 
+                                endDate = "2021-01-31 00:00:00" )
+
+# Fall2021 Data
+
+fileFall2021 <- "./dataForPaper/Fall2021.csv"
+Fall2021 <- conMetrics.cleanup(file = fileFall2021, 
+                                startDate = "2021-09-17 00:00:00", 
+                                endDate = "2021-10-18 00:00:00")
+
+
+cumsum.plot(Fall2021)
+
+daycount.plot(Fall2021)
+
+```
+
 
 ```{r app-connections, fig.height = 2.5, echo = FALSE, error = FALSE, message = FALSE, warning = FALSE, fig.cap="Connections to Air Quality app per day (top) and cummulative connections over time (bottom). Vertical lines indicate when the lab material was made available online to students, when the synchronous sessions with TAs started, and the due date. Blue rectangle highlights period when students worked on report sheet."}
 
