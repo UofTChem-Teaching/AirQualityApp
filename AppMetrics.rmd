@@ -27,11 +27,15 @@ library(scales)
 
 # Background
 
-The CHM135 Winter 2020 Practical 1 has wrapped up, and I downgraded our server status to the base (free) option. Given that it'll be a while until we get student feedback, I though I would comb through the sparse shiny apps metrics and see if I could get a better idea of how the app was used. 
+The CHM135 [Air Quality App](https://davidrosshall.shinyapps.io/AirQualityApp/) has been used for during the Winter 2021 and Fall 2021 iterations of the virtual CHM135 labs. Combing through the sparse Shiny App metrics for an understanding of app use, etc.
 
 # Results and Discussion
 
-There isn't much recorded by the Shiny server in terms of user metrics; the metrics that are recorded relate to server usage and not user experience. A useful metric is "connections", as in "when a person goes to the app website". Note that there can be multiple connections for a given individual (i.e. they go to the website on two different days). Nonetheless, it provides a useful approximate for the number of people who've used the app. Figure 1 shows the app connections over time. Predictably, the most connection are towards the tail end of the *Practical 1* synchronous sessions (Jan 18th to 22rd), and peaking over the weekend. 
+There isn't much recorded by the Shiny server in terms of user metrics. The metrics that are recorded relate to server usage rather than user experience. Nonetheless, we can glean some interesting insights. 
+
+## Number of App Connections
+
+The Shiny server records the number of "connections", which can be interpreted as "an indivdual person connects to the app website". Note that there can be multiple connections for a given individual (i.e. they go to the website on two different days). Nonetheless, it provides a useful approximate for the number of people who've used the app. Figure 1 shows the app connections over time and days for both the Winter and Fall 2021 iterations. Predictably, the most connection are towards the tail end of the *Practical 1* synchronous sessions (Jan 18th to 22rd), and peaking over the weekend. 
 
 ```{r app-connections-data, eval = FALSE, echo = FALSE, warning = FALSE, error = FALSE, message=FALSE}
 
@@ -42,13 +46,18 @@ df <- rsconnect::showMetrics("container_status",
                                "connect_procs"),
                              appName="AirQualityApp",
                              server="shinyapps.io",
-                             from="14w",
+                             from="6w",
                              interval="1m"
 )
 
 colnames(df) <- c("connect_count", "metricSeries", "connect_procs", "timestamp" )
 
+## Saving results that were run in January 2021
 #write.csv(df, file = "container_status_Practical1.csv")
+
+## Saving results from Fall 2021
+#write.csv(df, file = "./dataForPaper/Fall2021.csv")
+
 
 ```
 
@@ -81,17 +90,42 @@ df1 <- df %>%
 
 # Prep for cumsum plot
 
-df2 <- df1 %>%  
-  select(n_connect, date) %>% 
-  gather(key="key", value="value", -date)
+# cumsum plot
 
-# getting counts per day for bar plot.
+cumsum.plot <- function(df){
+  
+  df %>%
+    select(n_connect, date) %>% 
+    gather(key="key", value="value", -date) %>%
+    ggplot() +
+    labs(x="Date", y="Cumulative\nConnections") +
+    geom_line(aes(x=date, y=value))
+  
+  }
 
-df3 <- df1 %>%
-  mutate(date2 = as.Date(date)) %>%
-  group_by(date2) %>%
-  summarize(size = max(n_connect)) %>%
-  mutate(dayCount = size - lag(size))
+cumsum.plot(df1)
+
+
+# col plot of connections per day
+
+daycount.plot <- function(df){
+  
+  df %>%
+    mutate(date2 = as.Date(date)) %>%
+    group_by(date2) %>%
+    summarize(size = max(n_connect)) %>%
+    mutate(dayCount = size - lag(size)) %>%
+    ggplot(., aes(x = date2, y = dayCount)) +
+    geom_bar(fill="gray", stat = "identity") +  theme(axis.title=element_blank()) +
+    scale_y_continuous(breaks=seq(0, 70, 20)) +
+    labs(y = "Connections\nper day") +
+    theme_classic()
+  
+}
+
+daycount.plot(df1)
+
+
 
 ```
 
@@ -182,7 +216,7 @@ fall <- read.csv("./dataForPaper/Fall2021.csv") %>%
 
 fall1 <- fall %>%
   select(-timestamp) %>% 
-  filter(date > ymd_hms("2021-09-17 00:00:00") & date < ymd_hms("2021-10-15 00:00:00")) %>%
+  filter(date > ymd_hms("2021-09-17 00:00:00") & date < ymd_hms("2021-10-18 00:00:00")) %>%
   arrange(date) %>% 
   mutate(
     n_count=cumsum(connect_count),
