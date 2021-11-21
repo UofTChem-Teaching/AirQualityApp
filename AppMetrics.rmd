@@ -4,10 +4,10 @@ runningheader: "Air Quality App Usage" # only for pdf output
 author: "David Hall"
 date: "`r Sys.Date()`"
 output:
+  tufte::tufte_html: default
   tufte::tufte_handout:
     citation_package: natbib
     latex_engine: xelatex
-  tufte::tufte_html: default
   tufte::tufte_book:
     citation_package: natbib
     latex_engine: xelatex

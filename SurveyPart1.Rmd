@@ -17,6 +17,7 @@ link-citations: yes
 
 ```{r setup, include=FALSE}
 library(tufte)
+library(lubridate)
 library(tidyverse)
 library(scales) #for text wrap on x-axis
 
@@ -123,5 +124,31 @@ p3 <- surveyPlot(q = 4, df = surveyData)
 
 #gridExtra::grid.arrange(p1, p2, p3, ncol = 1)
 cowplot::plot_grid(p1, p2, p3, ncol = 1, align = "v")
+```
+
+# Fall 2021 Survey Results
+
+```{r}
+
+fall <- read_csv("dataForPaper/CHM135_Fall2021Survey.csv") %>%
+  select(-c("Email":"Quiz feedback", 
+            contains("Points"), 
+            contains("Feedback"))) %>%
+  mutate(`Start time` = as_datetime(`Completion time`)) %>%
+  mutate(`Completion time` = as_datetime(`Completion time`)) %>%
+  mutate("surveyTime" =  `Completion time` - `Start time`)
+  pivot_longer(cols = -"ID",
+               names_to = "question", 
+               values_to = "answer") %>%
+  drop_na()
+  
+```
+
+```{r}
+
+fallSum <- fall %>%
+  group_by(q)
+  
+
 ```
 
