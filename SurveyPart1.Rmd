@@ -133,22 +133,40 @@ cowplot::plot_grid(p1, p2, p3, ncol = 1, align = "v")
 fall <- read_csv("dataForPaper/CHM135_Fall2021Survey.csv") %>%
   select(-c("Email":"Quiz feedback", 
             contains("Points"), 
-            contains("Feedback"))) %>%
-  mutate(`Start time` = as_datetime(`Completion time`)) %>%
-  mutate(`Completion time` = as_datetime(`Completion time`)) %>%
-  mutate("surveyTime" =  `Completion time` - `Start time`)
-  pivot_longer(cols = -"ID",
+            contains("Feedback - "))) %>%
+  mutate(`Start time` = mdy_hms(`Start time`, tz = "US/Eastern")) %>%
+  mutate(`Completion time` = mdy_hms(`Completion time`, tz = "US/Eastern")) %>%
+  mutate("surveyTime" =  difftime(`Completion time`, `Start time`, units = "mins")) %>%
+  pivot_longer(cols = -c(ID:`Completion time`, surveyTime),
                names_to = "question", 
-               values_to = "answer") %>%
-  drop_na()
-  
+               values_to = "anwser")
+
+
+
 ```
 
 ```{r}
+# Student written feedback for Lab 1
+labFeedback <- fall %>%
+  filter(str_detect(question, "Any additional feedback")) %>%
+  drop_na()
 
-fallSum <- fall %>%
-  group_by(q)
+# Student multi-choice responses for Lab 1
+labChoice <- fall %>%
+  filter(str_detect(question, "Lab #1|Excel")) %>%
+  group_by(question, anwser) %>%
+  summarise(n = n())
+```
+
+```{r}
+ggplot(data = labChoice, 
+       aes(x = anwser, y = n)) +
+  geom_bar(stat = "identity") +
+  facet_wrap(~question, scales = "free_x") +
+  coord_flip() +
+  scale_x_discrete(labels = label_wrap(40))
   
 
 ```
+
 
