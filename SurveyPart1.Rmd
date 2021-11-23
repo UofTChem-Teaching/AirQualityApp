@@ -26,8 +26,9 @@ library(scales) #for text wrap on x-axis
 # options(htmltools.dir.version = FALSE)
 ```
 
+<!-- Importing and cleaning up survey data from Apr 2021 -->
 ```{r, error = FALSE, message = FALSE, warning = FALSE}
-# 1. Cleaning up and amagamating survey data
+# 1. Cleaning up and aggregating survey data
 
 ## 1.1 - Feb 2021 question from Lab 2 report.
 
@@ -88,25 +89,90 @@ surveyData <- full_join(cleanAprSurvey, cleanFebSurvey)
 ```
 
 ```{r, error = FALSE, message = FALSE, warning = FALSE}
+# Feb 2021 and April 2021 survey data
+surveyData <- read_csv("./dataForPaper/Lab1SurveyData.csv") 
 
-surveyData <- read_csv("./dataForPaper/Lab1SurveyData.csv") %>%
-  filter(time == "Apr. 2021")
+
+# Fall 2021 complete course survey results
+fall<- read_csv("dataForPaper/CHM135_Fall2021Survey.csv") %>%
+  select(-c("Email":"Quiz feedback", 
+            contains("Points"), 
+            contains("Feedback - "))) %>%
+  mutate(`Start time` = mdy_hms(`Start time`, tz = "US/Eastern")) %>%
+  mutate(`Completion time` = mdy_hms(`Completion time`, tz = "US/Eastern")) %>%
+  mutate("surveyTime" =  difftime(`Completion time`, `Start time`, units = "mins")) %>%
+  pivot_longer(cols = -c(ID:`Completion time`, surveyTime),
+               names_to = "Question", 
+               values_to = "Answer")
+
+
+
+# Fall 2021 Lab 1 specific feedback
+
+fallLab1  <- fall %>%
+  filter(str_detect(Question, "Lab #1|Excel|Any additional feedback")) %>%
+  mutate(time = "Nov. 2021") %>%
+  group_by(Question, Answer, time) %>%
+  summarise(count = n()) 
+
+# merging complete survey data
+
+lab1Survey <- full_join(surveyData, fallLab1) %>%
+  mutate(Question = str_squish(Question)) %>%
+  mutate(Answer = str_replace(Answer, "didn’t", "did not")) %>%
+  group_by(Question) %>%
+  mutate(QuestionID = cur_group_id()) %>%
+  ungroup() %>%
+  group_by(Question, time) %>% 
+  mutate(total = sum(count),
+         per = 100 * count/sum(count)) 
+  
+
+  
+```
+```{r}
+ggplot(data = subset(lab1Survey, QuestionID %in% c(2, 3, 4) & time != "Feb. 2021"),
+       aes(x = Answer, 
+           y = per, 
+           fill = time)) +
+  geom_bar(stat = "identity", 
+           position = "dodge") +
+  facet_wrap(~QuestionID) +
+  coord_flip()  +
+  scale_x_discrete(labels = label_wrap(40)) +
+  ylim(0,100)
+  
+```
+
+
+```{r}
+
+# question <- str_wrap(unique(labChoice$Question), subWidth)
+# 
+# ggplot(data = subset(labChoice, question_id == 1),
+#        aes(x = anwser, y = n)) +
+#   geom_bar(stat = "identity") +
+#   facet_wrap(~question, scales = "free_x") +
+#   coord_flip() +
+#   scale_x_discrete(labels = label_wrap(40))
+  
 
 surveyPlot <- function(q, df, axisWidth = 30, subWidth = 60, colour = time){
   
-  df <- subset(df, QuestionID == q) 
+  df <- subset(df, question_id == q) 
   
-  question <- str_wrap(unique(df$Question), subWidth)
+  question <- str_wrap(unique(df$question), subWidth)
 
-  ggplot(df, aes(x = Answer, y = count)) +
-    geom_segment( aes(x=Answer, xend=Answer, y=0, yend=count), colour = "#BB133E") +
+  ggplot(df, aes(x = anwser, y = per)) +
+    geom_segment( aes(x=anwser, xend=anwser, y=0, yend=per), colour = "#BB133E") +
     geom_point( color="#00204E", size=4) +
     labs(subtitle = question) +
     ylab("Count") +
     xlab("") +
     expand_limits(y = 20) +
     coord_flip() +
-    scale_y_continuous(minor_breaks = seq(0, 25, 5)) +
+    ylim(0,100) +
+    #scale_y_continuous(minor_breaks = seq(0, 100, 4)) +
     scale_x_discrete(labels = label_wrap(40)) +
     theme_light() +
     theme(
@@ -118,54 +184,12 @@ surveyPlot <- function(q, df, axisWidth = 30, subWidth = 60, colour = time){
    
 }
 
-p1 <- surveyPlot(q = 2, df = surveyData)
-p2 <- surveyPlot(q = 3, df = surveyData)
-p3 <- surveyPlot(q = 4, df = surveyData)
+f1 <- surveyPlot(q = 1, df = labChoice)
+f2 <- surveyPlot(q = 2, df = labChoice)
+f3 <- surveyPlot(q = 3, df = labChoice)
 
 #gridExtra::grid.arrange(p1, p2, p3, ncol = 1)
-cowplot::plot_grid(p1, p2, p3, ncol = 1, align = "v")
-```
-
-# Fall 2021 Survey Results
-
-```{r}
-
-fall <- read_csv("dataForPaper/CHM135_Fall2021Survey.csv") %>%
-  select(-c("Email":"Quiz feedback", 
-            contains("Points"), 
-            contains("Feedback - "))) %>%
-  mutate(`Start time` = mdy_hms(`Start time`, tz = "US/Eastern")) %>%
-  mutate(`Completion time` = mdy_hms(`Completion time`, tz = "US/Eastern")) %>%
-  mutate("surveyTime" =  difftime(`Completion time`, `Start time`, units = "mins")) %>%
-  pivot_longer(cols = -c(ID:`Completion time`, surveyTime),
-               names_to = "question", 
-               values_to = "anwser")
-
-
-
-```
-
-```{r}
-# Student written feedback for Lab 1
-labFeedback <- fall %>%
-  filter(str_detect(question, "Any additional feedback")) %>%
-  drop_na()
-
-# Student multi-choice responses for Lab 1
-labChoice <- fall %>%
-  filter(str_detect(question, "Lab #1|Excel")) %>%
-  group_by(question, anwser) %>%
-  summarise(n = n())
-```
-
-```{r}
-ggplot(data = labChoice, 
-       aes(x = anwser, y = n)) +
-  geom_bar(stat = "identity") +
-  facet_wrap(~question, scales = "free_x") +
-  coord_flip() +
-  scale_x_discrete(labels = label_wrap(40))
-  
+cowplot::plot_grid(f2, f3, f1, ncol = 1, align = "v")
 
 ```
 
