@@ -200,42 +200,42 @@ ggpubr::ggarrange(f2, f3, f1,
 #   geom_bar(stat = "identity") +
 #   facet_wrap(~question, scales = "free_x") +
 #   coord_flip() +
-#   scale_x_discrete(labels = label_wrap(40))
-  
-
-surveyPlot <- function(q, df, axisWidth = 30, subWidth = 60, colour = time){
-  
-  df <- subset(df, question_id == q) 
-  
-  question <- str_wrap(unique(df$question), subWidth)
-
-  ggplot(df, aes(x = anwser, y = per)) +
-    geom_segment( aes(x=anwser, xend=anwser, y=0, yend=per), colour = "#BB133E") +
-    geom_point( color="#00204E", size=4) +
-    labs(subtitle = question) +
-    ylab("Count") +
-    xlab("") +
-    expand_limits(y = 20) +
-    coord_flip() +
-    ylim(0,100) +
-    #scale_y_continuous(minor_breaks = seq(0, 100, 4)) +
-    scale_x_discrete(labels = label_wrap(40)) +
-    theme_light() +
-    theme(
-      panel.grid.major.y = element_blank(),
-      panel.border = element_blank(),
-      axis.ticks.y = element_blank()
-      )
-    
-   
-}
-
-f1 <- surveyPlot(q = 1, df = labChoice)
-f2 <- surveyPlot(q = 2, df = labChoice)
-f3 <- surveyPlot(q = 3, df = labChoice)
-
-#gridExtra::grid.arrange(p1, p2, p3, ncol = 1)
-cowplot::plot_grid(f2, f3, f1, ncol = 1, align = "v")
+# #   scale_x_discrete(labels = label_wrap(40))
+#   
+# 
+# surveyPlot <- function(q, df, axisWidth = 30, subWidth = 60, colour = time){
+#   
+#   df <- subset(df, question_id == q) 
+#   
+#   question <- str_wrap(unique(df$question), subWidth)
+# 
+#   ggplot(df, aes(x = anwser, y = per)) +
+#     geom_segment( aes(x=anwser, xend=anwser, y=0, yend=per), colour = "#BB133E") +
+#     geom_point( color="#00204E", size=4) +
+#     labs(subtitle = question) +
+#     ylab("Count") +
+#     xlab("") +
+#     expand_limits(y = 20) +
+#     coord_flip() +
+#     ylim(0,100) +
+#     #scale_y_continuous(minor_breaks = seq(0, 100, 4)) +
+#     scale_x_discrete(labels = label_wrap(40)) +
+#     theme_light() +
+#     theme(
+#       panel.grid.major.y = element_blank(),
+#       panel.border = element_blank(),
+#       axis.ticks.y = element_blank()
+#       )
+#     
+#    
+# }
+# 
+# f1 <- surveyPlot(q = 1, df = labChoice)
+# f2 <- surveyPlot(q = 2, df = labChoice)
+# f3 <- surveyPlot(q = 3, df = labChoice)
+# 
+# #gridExtra::grid.arrange(p1, p2, p3, ncol = 1)
+# cowplot::plot_grid(f2, f3, f1, ncol = 1, align = "v")
 
 ```
 
