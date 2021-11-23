@@ -176,11 +176,11 @@ surveyPlot <- function(q, df, axisWidth = 30, subWidth = 60, terms){
 f1 <- surveyPlot(q = 2, df = lab1Survey, terms = c("Nov. 2021", "Apr. 2021"))
 f2 <- surveyPlot(q = 3, df = lab1Survey, terms = c("Nov. 2021", "Apr. 2021"))
 f3 <- surveyPlot(q = 4, df = lab1Survey, terms = c("Nov. 2021", "Apr. 2021"))
-
-#gridExtra::grid.arrange(p1, p2, p3, ncol = 1)
-cowplot::plot_grid(f2, f3, f1, 
-                   ncol = 1, 
-                   align = "v")
+# 
+# #gridExtra::grid.arrange(p1, p2, p3, ncol = 1)
+# cowplot::plot_grid(f2, f3, f1, 
+#                    ncol = 1, 
+#                    align = "v")
 
 #gridExtra::grid.arrange(p1, p2, p3, ncol = 1)
 ggpubr::ggarrange(f2, f3, f1, 
