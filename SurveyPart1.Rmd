@@ -17,6 +17,7 @@ link-citations: yes
 
 ```{r setup, include=FALSE}
 library(tufte)
+library(lubridate)
 library(tidyverse)
 library(scales) #for text wrap on x-axis
 
@@ -25,60 +26,61 @@ library(scales) #for text wrap on x-axis
 # options(htmltools.dir.version = FALSE)
 ```
 
+<!-- Importing and cleaning up survey data from Apr 2021 -->
 ```{r, error = FALSE, message = FALSE, warning = FALSE}
-# 1. Cleaning up and amagamating survey data
+# 1. Cleaning up and aggregating survey data
 
 ## 1.1 - Feb 2021 question from Lab 2 report.
 
-my_files <- list.files(path = "./dataForPaper/", pattern = "\\Exp2Report.csv$", full.names = TRUE)
-
-my_data <- lapply(my_files, read_csv, col_names = FALSE, skip = 1)
-
-names(my_data) <- stringr::str_replace_all(my_files, c(".csv" = "", "./SurveyData/" = "", "_Exp2Report" = ""))
-
-febSurvey <- within(my_data, rm(PRA0301)) %>% # Survey data not in practical PRA0301
-  bind_rows() %>%
-  select(X57) %>%
-  rename(Answer = X57) %>%
-  drop_na() 
-
-## 1.2 - Cleaning up answer text
-
-question <- "Do you feel Lab #1 increased your confidence using Excel?"
-
-cleanFebSurvey <- febSurvey %>%
-  group_by(Answer) %>%
-  mutate(count = n()) %>% # number of times answer was submitted
-  ungroup() %>%
-  distinct() %>% 
-  mutate(Answer = str_replace_all( Answer, fixed("\\"),"")) %>% # removing backslash from answers
-  filter(str_count(Answer, ",") <= 1) %>% # removing respondents with multiple answers 
-  mutate(Question = paste(question)) %>%
-  mutate(time = paste("Feb. 2021")) %>%
-  mutate(QuestionID = 4)
+# my_files <- list.files(path = "./dataForPaper/", pattern = "\\Exp2Report.csv$", full.names = TRUE)
+# 
+# my_data <- lapply(my_files, read_csv, col_names = FALSE, skip = 1)
+# 
+# names(my_data) <- stringr::str_replace_all(my_files, c(".csv" = "", "./SurveyData/" = "", "_Exp2Report" = ""))
+# 
+# febSurvey <- within(my_data, rm(PRA0301)) %>% # Survey data not in practical PRA0301
+#   bind_rows() %>%
+#   select(X57) %>%
+#   rename(Answer = X57) %>%
+#   drop_na() 
+# 
+# ## 1.2 - Cleaning up answer text
+# 
+# question <- "Do you feel Lab #1 increased your confidence using Excel?"
+# 
+# cleanFebSurvey <- febSurvey %>%
+#   group_by(Answer) %>%
+#   mutate(count = n()) %>% # number of times answer was submitted
+#   ungroup() %>%
+#   distinct() %>% 
+#   mutate(Answer = str_replace_all( Answer, fixed("\\"),"")) %>% # removing backslash from answers
+#   filter(str_count(Answer, ",") <= 1) %>% # removing respondents with multiple answers 
+#   mutate(Question = paste(question)) %>%
+#   mutate(time = paste("Feb. 2021")) %>%
+#   mutate(QuestionID = 4)
 
 ## 1.3 - Getting April Survey results 
 
-aprSurvey <- read_csv("./dataForPaper/CHM135Winter2021_Lab1_Survey2.csv") %>%
-  select(-c('Start time', 'Completion time', 'Email', 'Name')) %>%
-  pivot_longer(cols = -ID,
-               names_to = "Question", 
-               values_to = "Answer") %>%
-  mutate(across(where(is.character), ~na_if(., "N/A")))  
-  
-cleanAprSurvey <- aprSurvey %>%  
-  mutate(QuestionID = group_indices(aprSurvey, .dots=c("Question"))) %>%
-  #filter(QuestionID %in% c(2,3,4)) %>%
-  drop_na() %>%
-  group_by(Question, QuestionID, Answer, ) %>%
-  summarise(count = n()) %>%
-  ungroup() %>%
-  mutate(time = paste("Apr. 2021"))
+# aprSurvey <- read_csv("./dataForPaper/CHM135Winter2021_Lab1_Survey2.csv") %>%
+#   select(-c('Start time', 'Completion time', 'Email', 'Name')) %>%
+#   pivot_longer(cols = -ID,
+#                names_to = "Question", 
+#                values_to = "Answer") %>%
+#   mutate(across(where(is.character), ~na_if(., "N/A")))  
+#   
+# cleanAprSurvey <- aprSurvey %>%  
+#   mutate(QuestionID = group_indices(aprSurvey, .dots=c("Question"))) %>%
+#   #filter(QuestionID %in% c(2,3,4)) %>%
+#   drop_na() %>%
+#   group_by(Question, QuestionID, Answer, ) %>%
+#   summarise(count = n()) %>%
+#   ungroup() %>%
+#   mutate(time = paste("Apr. 2021"))
   
 
 ### 1.4 - Combining Feb and Apr survey data 
 
-surveyData <- full_join(cleanAprSurvey, cleanFebSurvey) 
+#surveyData <- full_join(cleanAprSurvey, cleanFebSurvey) 
 
 ### 2.0 - Writting full survey results to .csv
 
@@ -87,25 +89,81 @@ surveyData <- full_join(cleanAprSurvey, cleanFebSurvey)
 ```
 
 ```{r, error = FALSE, message = FALSE, warning = FALSE}
+# Feb 2021 and April 2021 survey data
+surveyData <- read_csv("./dataForPaper/Lab1SurveyData.csv") 
 
-surveyData <- read_csv("./dataForPaper/Lab1SurveyData.csv") %>%
-  filter(time == "Apr. 2021")
 
-surveyPlot <- function(q, df, axisWidth = 30, subWidth = 60, colour = time){
+# Fall 2021 complete course survey results
+fall<- read_csv("dataForPaper/CHM135_Fall2021Survey.csv") %>%
+  select(-c("Email":"Quiz feedback", 
+            contains("Points"), 
+            contains("Feedback - "))) %>%
+  mutate(`Start time` = mdy_hms(`Start time`, tz = "US/Eastern")) %>%
+  mutate(`Completion time` = mdy_hms(`Completion time`, tz = "US/Eastern")) %>%
+  mutate("surveyTime" =  difftime(`Completion time`, `Start time`, units = "mins")) %>%
+  pivot_longer(cols = -c(ID:`Completion time`, surveyTime),
+               names_to = "Question", 
+               values_to = "Answer")
+
+
+
+# Fall 2021 Lab 1 specific feedback
+
+fallLab1  <- fall %>%
+  filter(str_detect(Question, "Lab #1|Excel|Any additional feedback")) %>%
+  mutate(time = "Nov. 2021") %>%
+  group_by(Question, Answer, time) %>%
+  summarise(count = n()) 
+
+# merging complete survey data
+
+lab1Survey <- full_join(surveyData, fallLab1) %>%
+  mutate(Question = str_squish(Question)) %>%
+  mutate(Answer = str_replace(Answer, "didn’t", "did not")) %>%
+  group_by(Question) %>%
+  mutate(QuestionID = cur_group_id()) %>%
+  ungroup() %>%
+  group_by(Question, time) %>% 
+  mutate(total = sum(count),
+         per = 100 * count/sum(count)) 
   
-  df <- subset(df, QuestionID == q) 
+# Saving Lab1 survey results as a csv
+
+#write.csv(x = lab1Survey, file = "dataForPaper/CompleteLab1SurveyData.csv", row.names = FALSE)
+  
+```
+```{r}
+# ggplot(data = subset(lab1Survey, QuestionID %in% c(2, 3, 4) & time != "Feb. 2021"),
+#        aes(x = Answer, 
+#            y = per, 
+#            fill = time)) +
+#   geom_bar(stat = "identity", 
+#            position = "dodge") +
+#   facet_wrap(~QuestionID) +
+#   coord_flip()  +
+#   scale_x_discrete(labels = label_wrap(40)) +
+#   ylim(0,100)
+  
+
+
+surveyPlot <- function(q, df, axisWidth = 30, subWidth = 60, terms){
+  
+  df <- subset(df, QuestionID == q & time %in% terms) 
   
   question <- str_wrap(unique(df$Question), subWidth)
 
-  ggplot(df, aes(x = Answer, y = count)) +
-    geom_segment( aes(x=Answer, xend=Answer, y=0, yend=count), colour = "#BB133E") +
-    geom_point( color="#00204E", size=4) +
+  ggplot(df, aes(x = Answer, 
+           y = per, 
+           fill = time)) +
+  geom_bar(stat = "identity", 
+           position = "dodge")  +
     labs(subtitle = question) +
-    ylab("Count") +
+    ylab("Percentage") +
     xlab("") +
     expand_limits(y = 20) +
     coord_flip() +
-    scale_y_continuous(minor_breaks = seq(0, 25, 5)) +
+    ylim(0,100) +
+    #scale_y_continuous(minor_breaks = seq(0, 100, 4)) +
     scale_x_discrete(labels = label_wrap(40)) +
     theme_light() +
     theme(
@@ -117,11 +175,72 @@ surveyPlot <- function(q, df, axisWidth = 30, subWidth = 60, colour = time){
    
 }
 
-p1 <- surveyPlot(q = 2, df = surveyData)
-p2 <- surveyPlot(q = 3, df = surveyData)
-p3 <- surveyPlot(q = 4, df = surveyData)
+f1 <- surveyPlot(q = 2, df = lab1Survey, terms = c("Nov. 2021", "Apr. 2021"))
+f2 <- surveyPlot(q = 3, df = lab1Survey, terms = c("Nov. 2021", "Apr. 2021"))
+f3 <- surveyPlot(q = 4, df = lab1Survey, terms = c("Nov. 2021", "Apr. 2021"))
+# 
+# #gridExtra::grid.arrange(p1, p2, p3, ncol = 1)
+# cowplot::plot_grid(f2, f3, f1, 
+#                    ncol = 1, 
+#                    align = "v")
 
 #gridExtra::grid.arrange(p1, p2, p3, ncol = 1)
-cowplot::plot_grid(p1, p2, p3, ncol = 1, align = "v")
+p <- ggpubr::ggarrange(f2, f3, f1, 
+                   ncol = 1, 
+                   common.legend = TRUE, 
+                  legend = "bottom"
+                   )
+
+p
 ```
+
+
+```{r}
+
+# question <- str_wrap(unique(labChoice$Question), subWidth)
+# 
+# ggplot(data = subset(labChoice, question_id == 1),
+#        aes(x = anwser, y = n)) +
+#   geom_bar(stat = "identity") +
+#   facet_wrap(~question, scales = "free_x") +
+#   coord_flip() +
+# #   scale_x_discrete(labels = label_wrap(40))
+#   
+# 
+# surveyPlot <- function(q, df, axisWidth = 30, subWidth = 60, colour = time){
+#   
+#   df <- subset(df, question_id == q) 
+#   
+#   question <- str_wrap(unique(df$question), subWidth)
+# 
+#   ggplot(df, aes(x = anwser, y = per)) +
+#     geom_segment( aes(x=anwser, xend=anwser, y=0, yend=per), colour = "#BB133E") +
+#     geom_point( color="#00204E", size=4) +
+#     labs(subtitle = question) +
+#     ylab("Count") +
+#     xlab("") +
+#     expand_limits(y = 20) +
+#     coord_flip() +
+#     ylim(0,100) +
+#     #scale_y_continuous(minor_breaks = seq(0, 100, 4)) +
+#     scale_x_discrete(labels = label_wrap(40)) +
+#     theme_light() +
+#     theme(
+#       panel.grid.major.y = element_blank(),
+#       panel.border = element_blank(),
+#       axis.ticks.y = element_blank()
+#       )
+#     
+#    
+# }
+# 
+# f1 <- surveyPlot(q = 1, df = labChoice)
+# f2 <- surveyPlot(q = 2, df = labChoice)
+# f3 <- surveyPlot(q = 3, df = labChoice)
+# 
+# #gridExtra::grid.arrange(p1, p2, p3, ncol = 1)
+# cowplot::plot_grid(f2, f3, f1, ncol = 1, align = "v")
+
+```
+
 

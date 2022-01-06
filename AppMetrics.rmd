@@ -4,10 +4,10 @@ runningheader: "Air Quality App Usage" # only for pdf output
 author: "David Hall"
 date: "`r Sys.Date()`"
 output:
+  tufte::tufte_html: default
   tufte::tufte_handout:
     citation_package: natbib
     latex_engine: xelatex
-  tufte::tufte_html: default
   tufte::tufte_book:
     citation_package: natbib
     latex_engine: xelatex
@@ -21,19 +21,25 @@ library(tidyverse)
 library(cowplot)
 library(scales)
 # invalidate cache when the tufte version changes
-#knitr::opts_chunk$set(cache.extra = packageVersion('tufte'))
+knitr::opts_chunk$set(echo = FALSE, error = FALSE, message = FALSE, warning = FALSE)
 #options(htmltools.dir.version = FALSE)
 ```
 
 # Background
 
-The CHM135 Winter 2020 Practical 1 has wrapped up, and I downgraded our server status to the base (free) option. Given that it'll be a while until we get student feedback, I though I would comb through the sparse shiny apps metrics and see if I could get a better idea of how the app was used. 
+The CHM135 [Air Quality App](https://davidrosshall.shinyapps.io/AirQualityApp/) has been used for during the Winter 2021 and Fall 2021 iterations of the virtual CHM135 labs. The **Winter 2021 term has ~200 students** enrolled across seven sections. The **Fall 2021 term has ~2300 students** enrolled across a lot of sections (unsure of number of sections). This document is just me combing through the sparse Shiny App metrics for an understanding of app usage, etc.
 
 # Results and Discussion
 
-There isn't much recorded by the Shiny server in terms of user metrics; the metrics that are recorded relate to server usage and not user experience. A useful metric is "connections", as in "when a person goes to the app website". Note that there can be multiple connections for a given individual (i.e. they go to the website on two different days). Nonetheless, it provides a useful approximate for the number of people who've used the app. Figure 1 shows the app connections over time. Predictably, the most connection are towards the tail end of the *Practical 1* synchronous sessions (Jan 18th to 22rd), and peaking over the weekend. 
+There isn't much recorded by the Shiny server in terms of user metrics. The metrics that are recorded relate to server usage rather than user experience. Nonetheless, we can glean some interesting insights. 
 
-```{r app-connections-data, eval = FALSE, echo = FALSE, warning = FALSE, error = FALSE, message=FALSE}
+## Number of App Connections
+
+The Shiny server records the number of connections to the app. Note that there can be multiple connections for a given individual (i.e. they go to the website on two different days). Nonetheless, it provides a useful approximate for the number of people who've used the app. Figure 1 shows the daily connections to the app, and the cummulative connections over the Exp. 1 sessions for both the Winter and Fall 2021 terms. Predictably, the most connection are towards the tail end of the *Practical 1* synchronous sessions, with particular spiking occuring in the hours leading up to a particular sessions deadline. 
+
+There were two reported isntances of the app crashing during the Fall 2021 session. The app didn't "crash", rather the settings at the time limited the number of connections at one point, meaning that once that number of connections was reached, the app wouldn't connect for the next user. So in the first instance on Sept 29 there was room for 100 concurrent connections, which was exceeded. The app was expanded to allow for 250 connections and reset, but this new limit was reached on October 4th. The app was reset to allow *250 connections for each of four worker processes* for a total of 1000 allowable connections.  
+
+```{r app-connections_data, eval = FALSE}
 
 #Code modified from Simon Woodward, Stack Overflow; https://stackoverflow.com/a/53733859
 
@@ -42,104 +48,234 @@ df <- rsconnect::showMetrics("container_status",
                                "connect_procs"),
                              appName="AirQualityApp",
                              server="shinyapps.io",
-                             from="14w",
-                             interval="1m"
+                            from = "1631851200", # Sept 17th, 2021
+                            until = "1634529600", # Oct 18 at 00:00 
 )
+
+
 
 colnames(df) <- c("connect_count", "metricSeries", "connect_procs", "timestamp" )
 
+## Saving results that were run in January 2021
 #write.csv(df, file = "container_status_Practical1.csv")
 
-```
+## Saving results from Fall 2021
+#write.csv(df, file = "./dataForPaper/Fall2021.csv")
 
-
-
-```{r app-connections_data-manipulation, echo = FALSE, error = FALSE, message = FALSE, warning = FALSE}
-
-# Container data spanning lab period
-
-df <- read.csv("./dataForPaper/container_status_Practical1.csv") %>% 
-  mutate(date=as.POSIXct(as.numeric(as.character(timestamp)),origin="1970-01-01")) %>% 
-  mutate(connect_count = as.numeric(connect_count)) %>%
-  mutate(connect_procs = as.numeric(connect_procs))
-
-# Subsetting data to cover Exp 1 period & getting number of connections
-
-df1 <- df %>%
-  select(-timestamp) %>% 
-  filter(date > ymd_hms("2021-01-10 00:00:00") & date < ymd_hms("2021-01-31 00:00:00")) %>%
-  arrange(date) %>% 
-  mutate(
-    n_count=cumsum(connect_count),
-    n_procs=cumsum(connect_procs),
-    new_connect=case_when(
-      connect_count>lag(connect_count,1) ~ connect_count-lag(connect_count,1),
-      TRUE ~ 0),
-    n_connect=cumsum(new_connect) # approximate
-  ) %>% 
-  filter(n_count>0)
-
-# Prep for cumsum plot
-
-df2 <- df1 %>%  
-  select(n_connect, date) %>% 
-  gather(key="key", value="value", -date)
-
-# getting counts per day for bar plot.
-
-df3 <- df1 %>%
-  mutate(date2 = as.Date(date)) %>%
-  group_by(date2) %>%
-  summarize(size = max(n_connect)) %>%
-  mutate(dayCount = size - lag(size))
 
 ```
 
-```{r app-connections, fig.height = 2.5, echo = FALSE, error = FALSE, message = FALSE, warning = FALSE, fig.cap="Connections to Air Quality app per day (top) and cummulative connections over time (bottom). Vertical lines indicate when the lab material was made available online to students, when the synchronous sessions with TAs started, and the due date. Blue rectangle highlights period when students worked on report sheet."}
+```{r app-connections_functions}
 
-p1 <- ggplot(df3, aes(x = date2, y = dayCount)) +
-  geom_bar(fill="gray", stat = "identity") +  theme(axis.title=element_blank()) +
-  scale_y_continuous(breaks=seq(0, 70, 20)) +
-  labs(y = "Connections\nper day") +
-  theme_classic() +
-  theme(axis.line.x=element_blank(),
+conMetrics.cleanup <- function(file, startDate, endDate){
+  
+  # Collecting data spanning lab period
+  df <- read.csv(file) %>%
+    mutate(date=as.POSIXct(as.numeric(as.character(timestamp)),origin="1970-01-01")) %>% 
+    mutate(connect_count = as.numeric(connect_count)) %>%
+    mutate(connect_procs = as.numeric(connect_procs)) %>%
+    select(-timestamp) %>% 
+    filter(date > ymd_hms(startDate) & date < ymd_hms(endDate)) %>%
+   arrange(date) %>% 
+    mutate(
+     n_count=cumsum(connect_count),
+      n_procs=cumsum(connect_procs),
+      new_connect=case_when(
+        connect_count>lag(connect_count,1) ~ connect_count-lag(connect_count,1),
+        TRUE ~ 0),
+      n_connect=cumsum(new_connect) # approximate
+    ) %>% 
+    filter(n_count>0)
+  
+  df
+}
+
+# plot of cumulative connections 
+
+cumsum.plot <- function(df){
+  
+  df %>%
+    select(n_connect, date) %>% 
+    gather(key="key", value="value", -date) %>%
+    ggplot() +
+    labs(x="Date", y="Cumulative\nConnections") +
+    geom_line(aes(x=date, y=value)) +
+    scale_x_datetime(date_breaks = "7 day", date_labels = "%a \n%b %d") +
+    theme_classic()
+  
+  }
+
+
+# col plot of connections per day
+
+daycount.dat <- function(df){
+  
+  df %>%
+    mutate(date2 = as.Date(date)) %>%
+    group_by(date2) %>%
+    summarize(size = max(n_connect)) %>%
+    mutate(dayCount = size - lag(size)) 
+}
+
+
+
+```
+
+<!-- need to get some more info on dates for Fall 2021 session. -DH -->
+
+```{r app-connections, fig.width = 8, fig.height = 5, fig.fullwidth = TRUE, fig.cap="Connections to Air Quality app per day (top) and cummulative connections over time (bottom) for the Winter and Fall 2021 sessions. Red bars denote days when the app crashed and required resetting and expansion of number of allowable connections. Note discrepency of y-axis between Winter and Fall 2021 sessions."}
+
+# Jan2021 Data 
+
+fileJan2021 <- "./dataForPaper/container_status_Practical1.csv"
+
+Jan2021<- conMetrics.cleanup(file = fileJan2021, 
+                                startDate = "2021-01-10 00:00:00", 
+                                endDate = "2021-01-31 00:00:00" )
+
+# Fall2021 Data
+
+fileFall2021 <- "./dataForPaper/Fall2021.csv"
+Fall2021 <- conMetrics.cleanup(file = fileFall2021, 
+                                startDate = "2021-09-17 00:00:00", 
+                                endDate = "2021-10-18 00:00:00")
+
+# Plotting cummulative and daily connections
+cumsumJan <- cumsum.plot(Jan2021) +
+  geom_vline(xintercept = ymd_hms("2021-01-10 18:00:00"), color = "black", lwd = 1) + #lab published on quercus
+  geom_vline(xintercept = ymd_hms("2021-01-21 09:00:00"), color = "black", lwd = 1) + #Sync sessions starts
+  geom_vline(xintercept = ymd_hms("2021-01-27 22:00:00"), color = "black", lwd = 1) + #due date 
+  annotate("text", x = ymd_hms("2021-01-11 00:00:00"), y = 250, label = "Released", hjust = 0, size=3) +
+  annotate("text", x = ymd_hms("2021-01-21 00:00:00"), y = 125, label = "Start sync. \nsessions", hjust = 1, size=3) +
+  annotate("text", x = ymd_hms("2021-01-27 23:59:00"), y = 125, label = "Due date", hjust = 0, size=3) 
+
+daycountJan<- daycount.dat(Jan2021) %>%
+    ggplot(., aes(x = date2, y = dayCount)) +
+    geom_col(fill="gray") + 
+    theme(axis.title=element_blank()) +
+    labs(y = "Connections\nper day") +
+    theme_classic() +
+    theme(axis.line.x=element_blank(),
         axis.text.x=element_blank(),
         axis.ticks.x=element_blank(),
         axis.title.x=element_blank(),
         panel.grid.minor.x=element_blank(),
-        panel.grid.major.x=element_blank())
+        panel.grid.major.x=element_blank()) +
+  labs(subtitle = "Winter 2021")
+
+    
+cumsumFall <- cumsum.plot(Fall2021) +
+    geom_vline(xintercept = ymd_hms("2021-10-16 00:00:00"), color = "black", lwd = 1) + #due date 
+    annotate("text", x = ymd_hms("2021-10-16 00:00:00"), y = 1000, label = "End of\nExp. 1", hjust = 1.2, size=3) +
+  labs(y = "") 
+
+daycountFall <- daycount.dat(Fall2021) %>%
+    mutate(appStatus = case_when(as.Date(date2) == as.Date("2021-10-04") ~ "crashed",
+                               as.Date(date2) == as.Date("2021-09-29") ~ "crashed",
+                               TRUE ~ "ok")) %>%
+    ggplot(., aes(x = date2, y = dayCount, fill = appStatus)) +
+    geom_col(show.legend=FALSE) + 
+    scale_fill_manual(values=c("red","grey70")) +
+   theme_classic() +
+   theme(axis.line.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.title.x=element_blank(),
+        panel.grid.minor.x=element_blank(),
+        panel.grid.major.x=element_blank(),
+        axis.title.y=element_blank(),legend.position="none") +
+     labs(y = "", 
+          subtitle = "Fall 2021")
+
+cowplot::plot_grid(daycountJan, daycountFall, cumsumJan, cumsumFall, align = "v" )
+```
+
+\newpage
+
+## Acitve hours
+```{r hours-savingFile, eval = FALSE}
+
+#Code modified from Simon Woodward, Stack Overflow; https://stackoverflow.com/a/53733859
+
+hours <- rsconnect::showUsage(appName = "AirQualityApp",
+                           server = "shinyapps.io",
+                           from = "1631851200",
+                           until = "1634529600",
+                           interval = "1d"
+                          ) %>%
+  mutate(date=as.POSIXct(as.numeric(as.character(timestamp)),origin="1970-01-01")) 
+
+## Saving results that were run in January 2021
+write.csv(hours, file = "./dataForPaper/Fall2021hours.csv")
+```
+```{r hours-dat, echo = FALSE}
+hours <- read_csv("./dataForPaper/Fall2021hours.csv")
+
+sumHours <- hours %>%
+  summarise(sum = sum(hours)) %>%
+  as.numeric()
   
+```
 
-p2 <- ggplot(df2) +
-  labs(x="Date", y="Cumulative\nConnections") +
-  geom_line(aes(x=date, y=value)) + 
-  geom_vline(xintercept = ymd_hms("2021-01-10 18:00:00"), color = "black", lwd = 1) + #lab published on quercus
-  geom_vline(xintercept = ymd_hms("2021-01-21 09:00:00"), color = "black", lwd = 1) + #Sync sessions starts
-  geom_vline(xintercept = ymd_hms("2021-01-27 22:00:00"), color = "black", lwd = 1) + #due date 
-  annotate("rect", xmin = ymd_hms("2021-01-21 09:00:00"), xmax = ymd_hms("2021-01-27 22:00:00"), 
-           ymin = 0, ymax = max(df2$value), alpha = .1,fill = "blue") + # rect for when students actively working
-  annotate("text", x = ymd_hms("2021-01-11 00:00:00"), y = 250, label = "Released", hjust = 0, size=3) +
-  annotate("text", x = ymd_hms("2021-01-21 00:00:00"), y = 125, label = "Start sync. \nsessions", hjust = 1, size=3) +
-  annotate("text", x = ymd_hms("2021-01-27 23:59:00"), y = 125, label = "Due date", hjust = 0, size=3) +
-  scale_x_datetime(date_breaks = "7 day", date_labels = "%b %d") +
-  theme_classic()
+Active hours are isntanced where the app is up, running, and serving requests, whether it's one user or one hundred. This is the primary metric from which the Shiny server billing covers. The *Standard* plan, purchased for both the Winter and Fall 2021 sessions for $99 USD/month, includes 2000 active hours. For the Fall 2021 session we used `r sumHours` hours.
 
+```{r app-hours, message = FALSE, fig.cap="Active app hours per day. App hours are instances where the app is running and serving request, wherether it's 1 user or 100. "}
 
+ggplot(data = hours, aes(x = date, y = hours)) +
+  geom_col() +
+  geom_hline( yintercept = 24, linetype = "dashed") + 
+  scale_y_continuous(breaks=c(0, 6, 12, 18, 24)) +
+  theme_classic() +
+  scale_x_datetime(date_breaks = "7 day", date_labels = "%a \n%b %d") +
+  labs(subtitle = "Fall 2021",
+       x = "Date", 
+       y = "Active hours/n per day")
 
-
-#grid.arrange(p2, p, ncol = 1)
-plot_grid(p1, p2, ncol = 1, align = "v")
 
 ```
 
-## Server time
+## App memory
 
-From the Shiny website, **we've used 77.8 hrs** over the course of the lab period. With **260 connections**, it means that **each connection (read user session) lasted approximately 18 minutes**. Some of these connection are ours (i.e. me checking on the app), but we also didn't spend too long looking at elements on the app, so I believe the 18 minutes/student is a reasonable measurement of student engagement with the App. Note, this is the time that a person was on the website, and not the amount of time the servers spent running calculations and fetching data. 
+Another consideration for the app is the memory required for the server. The ECCC2018 data loaded into the app, and from which all the plots are derived, is only `r file.info("www/ECCC2018_wideCombined.csv")$size * 0.00000095367432` MB large. After two crashes, I upgraded the memory on the server to 8 GB, which appears to have been overkill all things considering. Note this memory serves all the workers. 
 
-| Metric            | Numbers  |
-|-------------------|----------|
-| Total Connections | 260      |
-| Server time       | 77.8 hrs |
-| Time/connection   | 18 mins  |
+```{r , eval = FALSE}
 
-Table: Summary of student engagement (approximate)
+#Code modified from Simon Woodward, Stack Overflow; https://stackoverflow.com/a/53733859
+
+memory <- rsconnect::showMetrics("docker_container_mem",
+                             c("total_rss",
+                               "total_cache"),
+                             appName="AirQualityApp",
+                             server="shinyapps.io",
+                            from = "1631851200", # Sept 17th, 2021
+                            until = "1634529600" # Oct 18 at 00:00 
+                            )
+
+colnames(memory) <- c("total_rss", "metricSeries", "total_cache", "timestamp" )
+
+## Saving results that were run in January 2021
+#write.csv(memory, file = "./dataForPaper/Fall2021Memory.csv")
+
+```
+
+```{r app-memory, fig.height= 5, fig.cap = "App memory usage during the Fall 2021 session. Red bars denote days when the app crashed and required resetting and expansion of number of allowable connections."}
+memory <- read_csv("./dataForPaper/Fall2021Memory.csv") %>%
+  mutate("date" = as.POSIXct(as.numeric(as.character(timestamp)),origin="1970-01-01")) %>% 
+  mutate("total_mem" = total_rss + total_cache) %>%
+  pivot_longer(cols = c(total_rss, total_cache, total_mem),
+               names_to = "type",
+               values_to = "memory") %>%
+  mutate("memory_mb" = memory * 0.00000095367432) # converting bytes to mb
+
+memFall <- ggplot(memory, aes(x = date, y = memory_mb, colour = type)) +
+  geom_line() +
+  theme_classic() +
+  theme(legend.position = "bottom") +
+  labs(y = "app memory (MB)", 
+       x = "Date")
+
+
+cowplot::plot_grid(daycountFall + labs(y = "Connections\nper day"), memFall, align = "v", nrow = 2)
+```
+
+

@@ -27,7 +27,7 @@ library(RcppRoll)
 
 library(gridExtra)
 library(grid)
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, error = FALSE)
 ```
 
 # Abstract
@@ -68,9 +68,9 @@ In the data analysis portion of the lab students are randomly assigned two datas
 
 ```{r example-plots, fig.margin=TRUE, echo = FALSE, message = FALSE, warning=FALSE, fig.height = 7, fig.cap = "Example of plots students are expected to create. (A) time-series of pollutants across 7 winter days. (B) Correlation plot of O3 and NO2 concentrations with linear regression in the winter and (C) summer data sets. (D) Example plot if a '-999' value wasn't removed."}
 
-data <- read.csv("./dataForPaper/Toronto_60410_2018_Day10to16.csv", header = TRUE)
+data <- read_csv("dataForPaper/Toronto_60410_2018_Day10to16.csv",)
 
-dataSummer <- read.csv("./dataForPaper/Toronto_60410_2018_Day189to195.csv", header = TRUE)
+dataSummer <- read_csv("dataForPaper/Toronto_60410_2018_Day189to195.csv")
 
 data <- data %>%
   mutate(time = convertToDateTime(data$Date, origin = "1900-01-01")) %>%
@@ -162,159 +162,81 @@ p
 
 The last step in this workflow is expanded in the final part of the lab where students compare their results to the complete NAPS dataset from which their assigned datasets originated from. Here they are encouraged to generate hypotheses based on their own data, and their *a priori* chemical knowledge introduced in the prelab. To this end, we created an interactive online application that students visit using *R* and *Shiny*[@chang2020]. This application consist of an interactive map showing the location, and local population, of every NAPS surveillance station contained in the dataset. Students can then select any station and time-span, and a time-series and correlation plot, similar to the ones they created themselves, are automatically generated. This allows them to rapidly compare their data to any number of stations, simultaneously relieving them of the burden of repetitive and tedious data analysis while facilitating hypothesis generation and data exploration. Accompanying questions prompt students to explore and reason differences in O~3~ and NO~2~ correlation between urban and rural areas, as well as between winter and summer datasets. See the [Supporting Information] or <https://davidrosshall.shinyapps.io/AirQualityApp/> for details on the application.
 
-## Leveraging R to automate and expand the lab
 
-We made prodigeous use of *R* and various associated frameworks to greatly facilitate many aspects of this lab. Greater details and source code can be found in the [Supporting Information], but a brief discussion is warranted, if anything else, to encourage readers to harness *R* (or similar data science languages) to both simplify their own workload, while expanding course content.
-
-Firstly, the generation of the 7-day datasets. The NAPS program compiles all hourly measurements of a single pollutant, across all monitoring stations (n~station~\>150), for a single calendar year in one large `.csv` file. These expansive datasets are organized in a matrix style with columns for hour of the day (n~columns~ \> 24), and rows for days of the year at each station (n~rows~ \> (n~station~ $\times$ 365 days/year)). For first-year students, the task of accessing these datasets to subset their working data would be immediately overwhelming and tedious as they often exceed tens of thousands of rows and contain a number of information not necessary for their work. To counteract this, we used *R* to combine O~3~ and NO~2~ measurements (stored in separate `.csv` files), match them by NAPS station, and remove much of the ultimately unnecessary information (i.e. bilingual headers). The merged data is then transformed from the 'wide' matrix style to the 'long' columnar format (each row is [O~3~] and [NO~2~] per hour) so data is easier to manipulate in Excel. Then, using *R*, we generate a specific number of student datasets using a 7-day moving window of the year-long data. I.e. dataset 1 is Jan. 1st to the 7th, dataset 2 is Jan 2nd to 8th, etc, with complimentary summer data sets taken from July 1st onward. The rolling window ensure every student can be assigned a unique dataset, while largely looking at similar data. We also randomly insert a '-999' missing value into each data set ensuring students will encounter it during their analysis. Each data set is then automatically saved as a .csv file.
-
-Secondly, we wrote an *R markdown* script that generates a PDF with the analysis results of every generated data sets. The answer sheet analysis mirrors the one students carry out, providing TAs with an actual analysis of every dataset assigned to their students allowing them to quickly check each students submission, and relieving them of the burden of verifying each dataset.
-
-Thirdly, we wrote an interactive application using *R* and *Shiny*. This was created in-house specifically for this laboratory exercise. Thanks to the this, we were able to expand students working data from that directly provided to them, to the entire NAPS dataset. This would be impossible otherwise as students would not have the ability or time to explore the larger NAPS data in any practical manner given the tools we can provide to them. See the [Supplementary Information] for more details on the app, and how you can recycle our code to create your own version of the application if you want to run this lab.
-
-Lastly, our code can accept any standard formatted O~3~ and NO~2~ NAPS datasets, and instructors can readily select the NAPS station, the number of datasets, the overlap between datasets, etc. so course material can easily be updated for each iteration of the lab, or between different lab sections. See the [Supplementary Information] for the source-code for instructions on generating datasets.
 
 # Results and Pedagogical Outcomes
 
-```{r  importing-survey-results, echo = FALSE, error = FALSE, message = FALSE, warning = FALSE}
+```{r lab1survey, fig.width=7, fig.height = 4}
 
-surveyData <- read_csv("./dataForPaper/Lab1SurveyData.csv") %>%
-  filter(time == "Apr. 2021") %>%
-  group_by(QuestionID) %>%
-  mutate( percent = count / sum(count)) %>%
-  ungroup()
+# importing Lab 1 survey data
+lab1Survey <- read_csv("dataForPaper/CompleteLab1SurveyData.csv")
 
-```
 
-Based on the our surveys and feedback from students, the majority of students responded positively to the new learning experience. From our survey of students in the most recent iteration of the Air Quality Lab in the winter 2021 term (n=`r sum(subset(surveyData, QuestionID == 4)$count)`), 68% of respondents stated they felt the Excel component of Lab 1 significantly helped them complete the other CHM135 labs more efficiently. (Figure \@ref(fig:plot-survey-results)). This is a welcomed improvement as students frequently complain about the time commitment required for the CHM135 lab component. Students also feel more confident with regards to overall interpretation of data (plots, trendlines) as well as towards their use of Excel in general (57%, and 64%, respectively) (Figure \@ref(fig:plot-survey-results)).
-
-```{r  plot-survey-results, fig.height = 7, echo = FALSE, error = FALSE, message = FALSE, warning = FALSE, fig.cap="End of term student survey results for Lab 1."}
-
-surveyPlot <- function(q, df, axisWidth = 30, subWidth = 40){
+# survey plot function
+surveyPlot <- function(q, df, axisWidth = 30, subWidth = 60, terms){
   
-  df <- subset(df, QuestionID == q) 
+  df <- subset(df, QuestionID == q & time %in% terms) 
   
   question <- str_wrap(unique(df$Question), subWidth)
 
-  ggplot(df, aes(x = Answer, y = percent)) +
-    geom_segment( aes(x=Answer, xend=Answer, y=0, yend=percent), colour = "#BB133E") +
-    geom_point( color="#00204E", size=4) +
+  ggplot(df, aes(x = Answer, 
+           y = per, 
+           fill = time)) +
+  geom_bar(stat = "identity", 
+           position = "dodge")  +
     labs(subtitle = question) +
-    ylab("") +
+    ylab("Percentage") +
     xlab("") +
-    expand_limits(y = 1) +
+    expand_limits(y = 20) +
     coord_flip() +
-    scale_y_continuous(minor_breaks = seq(0, 1, 0.1)) +
-    scale_y_continuous(labels=percent) +
-    scale_x_discrete(labels = label_wrap(40)) +
+    ylim(0,100) +
+    #scale_y_continuous(minor_breaks = seq(0, 100, 4)) +
+    scale_x_discrete(labels = label_wrap(axisWidth)) +
     theme_light() +
     theme(
       panel.grid.major.y = element_blank(),
       panel.border = element_blank(),
       axis.ticks.y = element_blank(),
-      text = element_text(size=10)
+      text = element_text(size = 8)
       )
-
+    
+   
 }
 
-p1 <- surveyPlot(q = 2, df = surveyData)
-p2 <- surveyPlot(q = 3, df = surveyData)
-p3 <- surveyPlot(q = 4, df = surveyData)
+# plots per survey question
+f1 <- surveyPlot(q = 2, 
+                 df = lab1Survey, 
+                 terms = c("Nov. 2021", "Apr. 2021"),
+                 subWidth = 30,
+                 axisWidth = 60)
 
-#gridExtra::grid.arrange(p1, p2, p3, ncol = 1)
-cowplot::plot_grid(p1, p2, p3, ncol = 1, align = "v")
+f2 <- surveyPlot(q = 3, 
+                 df = lab1Survey, 
+                 terms = c("Nov. 2021", "Apr. 2021"), 
+                 subWidth = 30, 
+                 axisWidth = 30)
+
+f3 <- surveyPlot(q = 4, 
+                 df = lab1Survey, 
+                 terms = c("Nov. 2021", "Apr. 2021"),
+                 subWidth =  30,
+                 axisWidth = 30)
+
+p <- ggpubr::ggarrange(f2, f3, f1, 
+                       ncol = 2, nrow = 2,  
+                       common.legend = TRUE, 
+                       legend = "bottom"
+                   )
+
+p
 
 ```
+
+Based on the our surveys and feedback from students, the majority of students responded positively to the new learning experience. From our survey of students in the most recent iteration of the Air Quality Lab in the winter 2021 term (n = ??), 68% of respondents stated they felt the Excel component of Lab 1 significantly helped them complete the other CHM135 labs more efficiently. (Figure \@ref(fig:plot-survey-results)). This is a welcomed improvement as students frequently complain about the time commitment required for the CHM135 lab component. Students also feel more confident with regards to overall interpretation of data (plots, trendlines) as well as towards their use of Excel in general (57%, and 64%, respectively) (Figure \@ref(fig:plot-survey-results)).
 
 Included in the survey was the option for students to provide any additional feedback on the lab. Students expressed both positive and negative feedback to the Air Quality lab (See [Supporting Information] Table \@ref(fig:lab1-Feedback) for complete feedback). Students appreciated the introduction to Excel, the practical usefulness of the incorporated material, and the opportunity to analyze real world data offering a glimpse into environmental chemistry. However, students were also critical of how the material was implemented. Some experienced trouble with inconsistencies between the Excel instructions, and their version of Excel (although all UofT students are provided with free access to the latest version of Excel, with guidance/links provided in the aforementioned lab instructions document). Likewise, many students felt the Excel component should have been explicitly tough during the synchronous session, rather than those sessions focusing explicitly on lab material (i.e. data analysis vs. Excel operations). The CHM135 contains hundreds of students, many of whom have prior experience with Excel. Consequently, we opted not to directly teach students the basic workings of Excel in the synchronous session, as this would have bored many of students. Going forward, we feel that incorporating optional Excel help-sessions specifically to assist students with this component of the lab.
 
 A major addition to this lab is the development of the Air Quality App using Shiny. We strongly believe this was a great component, as the functionality of the app greatly reduces the 'friction' allowing students to readily explore the larger NAPS dataset without burdening them with lengthy data prep/analysis. Furthermore, as students explore the larger NAPS dataset they see data 'unknown' to the instructors. As the data is from real and complex environments, students often find data that *does not* support their hypothesis or that contradicts the pre-lab information! A stark contrast to the traditional undergraduate lab which is tailored so that students produce predictable results. The framework of the latter inadvertently teaches students to fit their data to the theory, in opposition to actual research where the data drives the theories. In other words, students are excited to make real connections and real discoveries with real data rather then going through the often tedious motions of analyzing pre-screened or synthetic data.
-
-## Notes on the Air Quality Shiny App
-
-While the idea of creating an app for a specific lab exercise may seem daunting, the flexibility and support of the Shiny framework greatly relieve one from the minutia of app development, allowing them to focus on how best to present their data to the target audience. The version of our app presented to students in the Winter 2021 term is available for viewing here: <https://davidrosshall.shinyapps.io/AirQualityApp/>. We have also provided the complete source code and example datasets on Github: <https://github.com/DavidRossHall/AirQualityApp>, and as a `.zip` in the supplementary information. We have provided instructions on running the app, and more importantly, we strongly encourage interested parties to modify the app to best suit their pedagogical needs.
-
-With any software, we needed to evaluate student experiences with our Air Quality app. However, we did not explicitly probe students for direct feedback, nor did we use capitalize on the abilities of Google analytics (although that is an option when creating Shiny Apps) to track student usage of the app. Instead, we inferred app usage by tracking the number of accessions (i.e. times the app was used). As shown in Figure \@ref(fig:app-connections), despite publishing the course material more than a week prior to the synchronous lab sessions, students did not access the app in any meaningful numbers. Usage did increase after the synchronous session, where students were explicitly instructed to work on their Lab 1 reports, of which two questions explicitly instructed students to access the Air Quality App. Predictably, app usage was highest immediately preceding the due date for the Lab 1 report; the implications of this are discussed below. As best we can tell, usage/interaction with the Air Quality app lasted on average 25 minutes, a respectable time given the brevity of the prompting questions, and the richness of the dataset.
-
-```{r app-connections_data-manipulation, echo = FALSE, error = FALSE, message = FALSE, warning = FALSE}
-
-# Container data spanning lab period
-
-df <- read.csv("./dataForPaper/container_status_Practical1.csv") %>% 
-  mutate(date=as.POSIXct(as.numeric(as.character(timestamp)),origin="1970-01-01")) %>% 
-  mutate(connect_count = as.numeric(connect_count)) %>%
-  mutate(connect_procs = as.numeric(connect_procs))
-
-# Subsetting data to cover Exp 1 period & getting number of connections
-
-df1 <- df %>%
-  select(-timestamp) %>% 
-  filter(date > ymd_hms("2021-01-10 00:00:00") & date < ymd_hms("2021-01-31 00:00:00")) %>%
-  arrange(date) %>% 
-  mutate(
-    n_count=cumsum(connect_count),
-    n_procs=cumsum(connect_procs),
-    new_connect=case_when(
-      connect_count>lag(connect_count,1) ~ connect_count-lag(connect_count,1),
-      TRUE ~ 0),
-    n_connect=cumsum(new_connect) # approximate
-  ) %>% 
-  filter(n_count>0)
-
-# Prep for cumsum plot
-
-df2 <- df1 %>%  
-  select(n_connect, date) %>% 
-  gather(key="key", value="value", -date)
-
-# getting counts per day for bar plot.
-
-df3 <- df1 %>%
-  mutate(date2 = as.Date(date)) %>%
-  group_by(date2) %>%
-  summarize(size = max(n_connect)) %>%
-  mutate(dayCount = size - lag(size))
-
-```
-
-```{r app-connections, fig.height = 2.5, echo = FALSE, error = FALSE, message = FALSE, warning = FALSE, fig.cap="Connections to Air Quality app per day (top) and cummulative connections over time (bottom). Vertical lines indicate when the lab material was made available online to students, when the synchronous sessions with TAs started, and the due date. Blue rectangle highlights period when students worked on report sheet."}
-
-p1 <- ggplot(df3, aes(x = date2, y = dayCount)) +
-  geom_bar(fill="gray", stat = "identity") +  theme(axis.title=element_blank()) +
-  scale_y_continuous(breaks=seq(0, 70, 20)) +
-  labs(y = "Connections\nper day") +
-  theme_classic() +
-  theme(axis.line.x=element_blank(),
-        axis.text.x=element_blank(),
-        axis.ticks.x=element_blank(),
-        axis.title.x=element_blank(),
-        panel.grid.minor.x=element_blank(),
-        panel.grid.major.x=element_blank())
-  
-
-p2 <- ggplot(df2) +
-  labs(x="Date", y="Cumulative\nConnections") +
-  geom_line(aes(x=date, y=value)) + 
-  geom_vline(xintercept = ymd_hms("2021-01-10 18:00:00"), color = "black", lwd = 1) + #lab published on quercus
-  geom_vline(xintercept = ymd_hms("2021-01-21 09:00:00"), color = "black", lwd = 1) + #Sync sessions starts
-  geom_vline(xintercept = ymd_hms("2021-01-27 22:00:00"), color = "black", lwd = 1) + #due date 
-  annotate("rect", xmin = ymd_hms("2021-01-21 09:00:00"), xmax = ymd_hms("2021-01-27 22:00:00"), 
-           ymin = 0, ymax = max(df2$value), alpha = .1,fill = "blue") + # rect for when students actively working
-  annotate("text", x = ymd_hms("2021-01-11 00:00:00"), y = 250, label = "Released", hjust = 0, size=3) +
-  annotate("text", x = ymd_hms("2021-01-21 00:00:00"), y = 125, label = "Start sync. \nsessions", hjust = 1, size=3) +
-  annotate("text", x = ymd_hms("2021-01-27 23:59:00"), y = 125, label = "Due date", hjust = 0, size=3) +
-  scale_x_datetime(date_breaks = "7 day", date_labels = "%b %d") +
-  theme_classic()
-
-
-
-
-#grid.arrange(p2, p, ncol = 1)
-plot_grid(p1, p2, ncol = 1, align = "v")
-
-```
-
-A brief comment for the unaware: running a Shiny app requires server side computing. In other words, as students select data to plot, a dedicated server must perform the necessary computations. While these requirements are not egregious, they are still to be considered if you plan on hosting your own instance of the app. While Shiny provides instructions and software for running the app on premise, we opted to host our app on the Shiny server cloud. As mentioned above, many students 'flashed' the app as the deadline approached. Without adequate server space, this could increase load times, decrease responsiveness, and possibly crash the app. The free 15hrs/month of server time (time it takes to run the app) provided by Shiny is unsuitable for the anticipated server loads once the App was released for all of the CHM135 lab sections. Consequently, for the 2021 Winter Term, there were slightly over ??? students, so we payed the *Standard* hosting package costing \$99USD/month for 2000 hrs of server time. This was admittedly an excess of server time, but we chose to play it safe. Likewise, as the Air Quality App was only used during the first lab, we only needed to pay for one month of server time to account for all the lab sections. As we continue to experiment with creating purpose built apps for individual labs/courses, we will attempt to transition to local hosting.
 
 # Conclusions
 
@@ -322,34 +244,6 @@ We sought to create a new introductory lab experiment to expressly teach incomin
 
 # Supporting Information
 
-*Note this will be a separate document, obviously*.
-
-Stuff to include:
-
--   Images of app
--   Example report sheet
-
-```{r lab1-Feedback, echo = FALSE, error = FALSE, message = FALSE, warning = FALSE}
-
-surveyQ1 <- surveyData %>%
-  filter(QuestionID == 1)
-
-Q1 <- paste( "Student responses to: ", unique(surveyQ1$Question))
-
-knitr::kable(select(surveyQ1, Answer), caption = (Q1))
-
-```
-
-```{r chm135-Feedback, echo = FALSE, error = FALSE, message = FALSE, warning = FALSE}
-
-surveyQ5 <- surveyData %>%
-  filter(QuestionID == 5)
-
-Q5 <- paste( "Student responses to: ", unique(surveyQ5$Question))
-
-knitr::kable(select(surveyQ5, Answer), caption = (Q5))
-
-```
 
 # Author Information
 
