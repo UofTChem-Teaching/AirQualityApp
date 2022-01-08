@@ -10,9 +10,9 @@ library(anytime) # quicker than lubridate
 library(zoo) # rolling averages
 library(plotly) # interactive plots 
 
-data <- data.table::fread("www/ECCC2018_wideCombined.csv") 
+data <- data.table::fread("www/ECCC2019_wideCombined.csv", encoding = 'UTF-8') 
 
-mapInfo <- data.table::fread("www/ECCC2018_mapInfo.csv")
+mapInfo <- data.table::fread("www/ECCC2019_mapInfo.csv", encoding = 'UTF-8')
 
 ## 1.2 Custom icons for population size ================================= 
 
@@ -51,7 +51,7 @@ ui <- fluidPage(
             selectInput("NAPS", 
                         label = "Choose which station's data to display; use the map above to view location of available stations.",
                         choices = unique(data$NAPS),
-                        selected = "10102"
+                        selected = "60435"
                         ),
             
             dateRangeInput('dateRange', 
@@ -100,14 +100,15 @@ server <- function(input, output) {
         
         data %>% filter(NAPS == input$NAPS) %>%
             pivot_longer(
-                cols = O3_H01:NO2_H24,
-                names_to = c("Pollutant", "Hour"),
+                cols = starts_with("H"),
+                names_to = c("Hour", "Pollutant"),
                 names_sep = "_",
                 values_to = "Concentration"
             ) %>%
             pivot_wider(names_from = 'Pollutant',
                         values_from = 'Concentration') %>%
-            mutate(Date_time = anytime(paste(Date, str_sub(Hour, -2, -1), ":00"))) %>%
+            mutate(Date_time = paste0(Date, " ", Hour, ":00")) %>%
+            mutate(Date_time = lubridate::parse_date_time(Date_time, "%Y-%m-%d %H:%M") - lubridate::hours(1)) %>%
             filter(Date_time >= input$dateRange[1] & Date_time <= input$dateRange[2]) %>%
             mutate(Ox = NO2 + O3,
                    NO2_8hr = zoo::rollmean(O3, k = 7, fill = NA, align = "right"),

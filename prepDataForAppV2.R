@@ -64,6 +64,21 @@ joinECCC <- function(O3, NO2){
 
 }
 
+# 3. Merged City Column ----
+
+# The app dropdown menu & map icons derive data from different files
+# this function ensure they're the same format/content
+
+mergedCity <- function(df){
+  
+  df <- df %>%
+    unite("City", City:Province, sep = ", ") %>%
+    unite("NAPS", City:NAPS, sep = ", NAPS: ") 
+  
+  df
+  
+}
+
 # 3. Merging ECCC with Population Data ------------
 # Takes the NAPS population data, and inner merges it w/ combined NAPS lists. 
 # Returns dataset with City
@@ -85,12 +100,13 @@ mapInfo <- function(joinedECCC, popDat){
     
   # Simplifying city names for map labels & dropdown menu
   df <- df %>%
-    unite("City", City:Province, sep = ", ") %>%
-    unite("NAPS", City:NAPS, sep = ", NAPS: ") 
+    mergedCity()
 
   df
   
 }
+
+
 
 # 4. Saving Datasets
 
@@ -113,7 +129,8 @@ write_csv(mapInfo, file = "www/ECCC2019_mapInfo.csv")
 ## 4.3 Pruning and saving ECCC data ----
 
 joinedECCC %>%
-  select(c(NAPS, Date, starts_with("H"))) %>%
+  mergedCity() %>%
+  select(-c(Latitude, Longitude)) %>%
   write_csv(file = "www/ECCC2019_wideCombined.csv")
 
 
