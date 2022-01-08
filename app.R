@@ -111,8 +111,8 @@ server <- function(input, output) {
             mutate(Date_time = lubridate::parse_date_time(Date_time, "%Y-%m-%d %H:%M") - lubridate::hours(1)) %>%
             filter(Date_time >= input$dateRange[1] & Date_time <= input$dateRange[2]) %>%
             mutate(Ox = NO2 + O3,
-                   NO2_8hr = zoo::rollmean(O3, k = 7, fill = NA, align = "right"),
-                   O3_8hr = zoo::rollmean(NO2, k = 7, fill = NA, align = "right"),
+                   NO2_8hr = zoo::rollmean(NO2, k = 7, fill = NA, align = "right"),
+                   O3_8hr = zoo::rollmean(O3, k = 7, fill = NA, align = "right"),
                    Ox_8hr = zoo::rollmean(Ox, k = 7, fill = NA, align = "right"))
         
     })
