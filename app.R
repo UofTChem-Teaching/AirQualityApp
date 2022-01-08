@@ -6,7 +6,6 @@ library(ggExtra) # for marginal histogram
 library(ggpmisc) # to display line of best fit on plot
 library(leaflet) # interactive map
 library(DT) # for data table
-library(anytime) # quicker than lubridate
 library(zoo) # rolling averages
 library(plotly) # interactive plots 
 
