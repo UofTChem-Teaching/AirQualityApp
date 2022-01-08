@@ -4,6 +4,7 @@ library(shiny)
 library(tidyverse)
 library(ggExtra) # for marginal histogram
 library(ggpmisc) # to display line of best fit on plot
+library(anytime) # easier then lurbidate for menu selectio...
 library(leaflet) # interactive map
 library(DT) # for data table
 library(zoo) # rolling averages
