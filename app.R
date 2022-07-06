@@ -1,7 +1,8 @@
+# 1. Setup -----
 
-# 1. Packages and date import ---------------------------------
-library(shiny)
+## 1.1. Libraries ----
 library(tidyverse)
+library(lubridate)
 library(ggExtra) # for marginal histogram
 library(ggpmisc) # to display line of best fit on plot
 library(anytime) # easier then lurbidate for menu selectio...
@@ -9,12 +10,19 @@ library(leaflet) # interactive map
 library(DT) # for data table
 library(zoo) # rolling averages
 library(plotly) # interactive plots 
+library(googlesheets4)
+library(shinycssloaders)
+library(shiny)
 
-data <- data.table::fread("www/ECCC2019_wideCombined.csv", encoding = 'UTF-8') 
+source("www/utils.R")
 
-mapInfo <- data.table::fread("www/ECCC2019_mapInfo.csv", encoding = 'UTF-8')
+## 1.2 Starting Data ----
 
-## 1.2 Custom icons for population size ================================= 
+data <- data.table::fread("www/ECCC2020_wideCombined.csv", encoding = 'UTF-8') 
+
+mapInfo <- data.table::fread("www/ECCC2020_mapInfo.csv", encoding = 'UTF-8')
+
+## 1.3 Custom icons for population size ================================= 
 
 leafIcons <- icons(
     iconUrl = ifelse(mapInfo$PopSize == "large", "www/largeIcon.png",
@@ -26,7 +34,7 @@ leafIcons <- icons(
     iconAnchorX = 13, iconAnchorY = 40
     )
 
-## 1.3 Descriptive text for map icon popups ================================= 
+## 1.4 Descriptive text for map icon popups ================================= 
 
 labs <- lapply(seq(nrow(mapInfo)), function(i) {
     paste0( '<p>',
@@ -70,6 +78,8 @@ ui <- fluidPage(
             
             tabsetPanel(type = "tabs",
                         tabPanel("Welcome", 
+                                 includeHTML("www/welcome.html")),
+                        tabPanel("Data", 
                                  includeHTML("www/welcome.html")),
                         tabPanel("Plot",
                                  plotlyOutput("TimeseriesPlot"),
@@ -275,6 +285,10 @@ server <- function(input, output) {
     })
     
 }
+
+    # 3.4 Leaflet map ===================
+
+# 3
 
 # 4. Run the application ----------------- 
 shinyApp(ui = ui, server = server)

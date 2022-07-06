@@ -7,7 +7,7 @@
 library(tidyverse)
 
 
-df <- read_csv(file = "raw-data/O3_2019.csv",
+df <- read_csv(file = "raw-data/O3_2020.csv",
                skip = 7, 
                )
 
@@ -32,6 +32,15 @@ readECCC <- function(file){
     df <- rename(df, Province = P)
     
     df
+  }
+  
+  example_date <- df[1,7] # getting first date in column to assess format
+  
+  if(str_detect(example_date, "/")){
+    
+    df <- df %>%
+      mutate(Date = anydate(Date))
+    
   }
   
   # Append hour with Pollutant type
@@ -112,8 +121,8 @@ mapInfo <- function(joinedECCC, popDat){
 
 ## 4.1 Joinined ECCC datasets ----
 
-joinedECCC <- joinECCC("raw-data/O3_2019.csv", 
-                       "raw-data/NO2_2019.csv")
+joinedECCC <- joinECCC("raw-data/O3_2020.csv", 
+                       "raw-data/NO2_2020.csv")
 
 ## 4.2 Importing and saving map data -----
 
@@ -124,14 +133,14 @@ pops <- read_csv("raw-data/NAPSPops.csv",
 mapInfo <- mapInfo(joinedECCC = joinedECCC, 
                    popDat = pops)
 
-write_csv(mapInfo, file = "www/ECCC2019_mapInfo.csv")
+write_csv(mapInfo, file = "www/ECCC2020_mapInfo.csv")
 
 ## 4.3 Pruning and saving ECCC data ----
 
 joinedECCC %>%
   mergedCity() %>%
   select(-c(Latitude, Longitude)) %>%
-  write_csv(file = "www/ECCC2019_wideCombined.csv")
+  write_csv(file = "www/ECCC2020_wideCombined.csv")
 
 
 
