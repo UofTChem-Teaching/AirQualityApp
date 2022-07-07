@@ -84,10 +84,10 @@ ui <- fluidPage(
                         tabPanel("Data", 
                                  includeHTML("www/welcome.html")),
                         tabPanel("Plot",
-                                 plotlyOutput("TimeseriesPlot"),
+                                 plotlyOutput("TimeseriesPlot") %>% withSpinner(color = "#002A5C"),
                                  br(),
                                  p("You can interact with the time series plot above; i.e. narrowing displayed date range. Note however that the date range for both plots is dictated by your inputted dates. In other words, you’ll need to change your inputted dates to update the data displayed on the correlation plot. To save as an image, use the download button in the top-left (time-series) or right-click and save as (correlation)", style = "font-family: 'times'; font-si16pt"),
-                                 plotOutput("CompPlot")),
+                                 plotOutput("CompPlot") %>% withSpinner(color = "#002A5C")),
                         tabPanel("Summary Stats", 
                                  br(),
                                  DT::dataTableOutput("SumTable")),
@@ -115,24 +115,6 @@ server <- function(input, output) {
                               start_date = input$dateRange[1],
                               end_date = input$dateRange[2])
       data
-        # data %>% filter(NAPS == input$NAPS) %>%
-        #   filter(Date >= input$dateRange[1] & Date <= input$dateRange[2]) %>%
-        #   pivot_longer(
-        #       cols = starts_with("H"),
-        #       names_to = c("Hour", "Pollutant"),
-        #       names_sep = "_",
-        #       values_to = "Concentration"
-        #   ) %>%
-        #   pivot_wider(names_from = 'Pollutant',
-        #               values_from = 'Concentration') %>%
-        #   mutate(Date_time = paste0(Date, " ", Hour, ":00")) %>%
-        #   mutate(Date_time = lubridate::parse_date_time(Date_time, "%Y-%m-%d %H:%M") - lubridate::hours(1)) %>%
-        #   filter(Date_time >= input$dateRange[1] & Date_time <= input$dateRange[2]) %>%
-        #   mutate(Ox = NO2 + O3,
-        #          NO2_8hr = zoo::rollmean(NO2, k = 7, fill = NA, align = "right"),
-        #          O3_8hr = zoo::rollmean(O3, k = 7, fill = NA, align = "right"),
-        #          Ox_8hr = zoo::rollmean(Ox, k = 7, fill = NA, align = "right"))
-        
     })
     
     # 3.2 Time series plot =================
