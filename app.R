@@ -17,12 +17,16 @@ library(shiny)
 source("www/utils.R")
 
 ## 1.2 ECCC Starting Data ----
-
+# used for plotting and maps
 data <- data.table::fread("www/ECCC2020_wideCombined.csv", encoding = "UTF-8")
 
 mapInfo <- data.table::fread("www/ECCC2020_mapInfo.csv", encoding = "UTF-8")
 
 ## 1.3 Data for Subsetting ----
+# what's broken up and handed out to students
+studentData <- data.table::fread("www/Toronto2020_studentData.csv")
+
+naps_stations <- unique(studentData$NAPS)
 
 ## 1.4 Custom icons for population size =================================
 
@@ -48,12 +52,24 @@ labs <- lapply(seq(nrow(mapInfo)), function(i) {
   )
 })
 
+## 1.6 Declarations and functions for google sheets ----
+
+SHEET_ID <- "https://docs.google.com/spreadsheets/d/1spwFA7AlDyhzTjtClexC7YmxDFWT6MvvdCABXnXmsUY/edit?usp=sharing"
+
+# for authenticating sheets access on server 
+options(
+  # whenever there is one account token found, use the cached token
+  gargle_oauth_email = TRUE,
+  # specify auth tokens should be stored in a hidden directory ".secrets", don't push to github....
+  gargle_oauth_cache = ".secrets"
+)
+
 # 2. UI  ---------------------------------
 
 ui <- fluidPage(
 
   ## 2.1 App title =====================================
-  titlePanel("CHM135: Exploring Air Quality Data"),
+  titlePanel("Exploring Air Quality Data"),
 
   ## 2.2 Sidebar Inputs ====================
   sidebarLayout(
@@ -75,7 +91,7 @@ ui <- fluidPage(
       radioButtons(inputId = "excel", label = "Improve my correlation plot?", choices = c("No", "Yes"))
     ),
 
-    ## 2.3 Main Panel with outputs ========================
+  ## 2.3 Main Panel with outputs ========================
     mainPanel(
       tabsetPanel(
         type = "tabs",
@@ -85,7 +101,25 @@ ui <- fluidPage(
         ),
         tabPanel(
           "Data",
-          includeHTML("www/welcome.html")
+          fluidRow(
+            column(
+              3,
+              textInput("studentNum", "Enter your student number here"),
+              # selectInput(
+              #   inputId = "labSession",
+              #   label = "You're Lab Session Code",
+              #   choices = c("", "Tues PM", "Wed. AM", "Wed. PM")
+              # ),
+              actionButton("showStudNum", "Get my Data"),
+            ),
+            column(
+              6,
+              uiOutput("downloadButton"),
+              # downloadButton("download", "Download Your Data!"),
+              DT::dataTableOutput("df_table") %>% withSpinner(color = "#002A5C")
+            ),
+            column(3)
+          )
         ),
         tabPanel(
           "Plot",
@@ -110,7 +144,7 @@ ui <- fluidPage(
 
 # 3. Server -------------------------------------
 
-server <- function(input, output) {
+server <- function(input, output, session) {
 
 
   # 3.1 Reactive data subsetting ================
@@ -206,9 +240,131 @@ server <- function(input, output) {
     caption = "Table 1: Summary statistics for O3, NO2, and Ox measurements from your selected NAPS station and time range. Note, all measurements are in ppb."
     )
   })
+
+  # 3.6 Data assigner -----
+  
+  # checking if students inputted a valid student ID.
+  checkID <- eventReactive(input$showStudNum, {
+    studentNum <- input$studentNum
+    
+    if (!str_detect(studentNum, "^[0-9]+$")) {
+      ID <- FALSE
+    } else if (str_count(studentNum) < 9) {
+      ID <- FALSE
+    } else if (str_count(studentNum) > 11) {
+      ID <- FALSE
+    } else {
+      ID <- TRUE
+    }
+    ID
+  })
+  
+  
+  # Loading google sheet w/ recorded student values
+  course_data <- eventReactive(input$showStudNum, {
+    validate(need(checkID(), "Please input your UofT Student number on the left."))
+    
+    df <- loadData(sheet_id = SHEET_ID) %>%
+      mutate(start_date = round_date(start_date, unit = "hour"))
+    df
+  })
+  
+  student_number <- eventReactive(input$showStudNum, {
+    paste(input$studentNum)
+  })
+  
+  # Getting student values to retrieve their assigned datasets
+  student_vals <- reactive({
+    df <- course_data()
+    
+    if (student_number() %in% df$student_number) {
+      student_vals <- df[df$student_number == student_number(), ] %>%
+        mutate(start_date = round_date(start_date, unit = "hour"))
+      
+    } else {
+      
+      # Random NAPS station from available
+      student_naps <- as.character(sample(naps_stations, 1))
+      
+      # filter for NAPS station
+      data_naps <- as.data.frame(studentData[studentData$NAPS == student_naps, ])
+      
+      # Pick random start date, giving >= 7 days of data
+      n_row <- sample((nrow(data_naps) - 168), 1)
+      
+      # Starting date as value
+      startDate <- data_naps[n_row, "Time"]
+      
+      # Saving students assigned values, including location of artifical '-999' error
+      student_vals <- data.frame(
+        "student_number" = student_number(),
+        "naps_station" = student_naps,
+        "start_date" = startDate,
+        "error_row" = sample(c(1:168), size = 1)
+      )
+      
+      saveData(student_vals, sheet_id = SHEET_ID)
+    }
+    
+    as.data.frame(student_vals)
+  })
+  
+  # saving new student
+  
+  # retrieving student assigned datasets
+  student_data <- reactive({
+    student_vals <- student_vals()
+    
+    student_naps <- student_vals[1, "naps_station"]
+    student_date <- student_vals[1, "start_date"]
+    student_error <- student_vals[1, "error_row"]
+    
+    # filter for NAPS station
+    start_row <- which(studentData$NAPS == student_naps & studentData$Time == as.numeric(student_date),
+                       arr.ind = TRUE
+    )
+    
+    # Getting 7 day dataset from student's start date
+    df <- slice(
+      studentData,
+      start_row:(start_row + 167)
+    )
+    # inserting '-999' error into students data
+    df[student_error, "O3"] <- -999
+    
+    df
+  })
+  
+  output$df_table <- renderDT({
+    student_data <- student_data()
+    student_data
+  })
+  
+  output$download <- downloadHandler(
+    filename = "my_7day_data.csv",
+    content = function(file) {
+      write.csv(student_data(), file, row.names = FALSE)
+    }
+  )
+  
+  # renders download button once dataset as has been retrieved
+  output$downloadButton <- renderUI({
+    if (!is.null(student_data())) {
+      downloadButton("download", "Download Your Data!")
+    }
+  })
+  
+  # modal dialog to download data
+  observeEvent(student_data(), {
+    showModal(modalDialog(
+      title = "Download",
+      "Download your data using the download button.",
+      easyClose = TRUE
+    ))
+  })
+
 }
 
-# 3.4 Leaflet map ===================
 
 # 3
 

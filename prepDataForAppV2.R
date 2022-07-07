@@ -145,10 +145,36 @@ joinedECCC %>%
 
 # 5. Toronto Data for student assigned datasets  ----
 
+# this part is janky, need to revisit and not have is to janky...
+
+torontoNAPS <- c("60410", "60430", "60435", "60438", "60440")
+torNaps <- paste(torontoNAPS, collapse ="|")
 
 
+data <- read_csv("www/ECCC2020_wideCombined.csv") %>%
+  mutate(NAPS = str_replace(NAPS, ".*:", "")) %>%
+  filter(str_detect(NAPS, torNaps)) %>%
+  pivot_longer(
+    cols = starts_with("H"),
+    names_to = c("Hour", "Pollutant"),
+    names_sep = "_",
+    names_prefix = "H",
+    values_to = "Concentration"
+  ) %>%
+  pivot_wider(names_from = 'Pollutant',
+              values_from = 'Concentration') 
 
+data2 <- data %>%
+  filter(Date < lubridate::ymd("2020-03-01")) %>%
+  mutate(Time = paste0(Date, " ", Hour, ":00")) %>%
+  mutate(Time = lubridate::parse_date_time(Time, "%Y-%m-%d %H:%M") - lubridate::hours(1)) %>%
+  #relocate(Time, .after = Longitude) %>%
+  select(-c(Date, Hour)) %>%
+  relocate("Time", .after = "NAPS") %>%
+  replace_na(list( O3 = -999,
+                   NO2 = -999))
 
+write_csv(x = data2, file = "www/Toronto2020_studentData.csv")
 
 
 
