@@ -44,13 +44,13 @@ stationDataPrep<- function(data, naps, start_date, end_date){
     mutate(Ox = NO2 + O3,
            NO2_8hr = zoo::rollmean(NO2, k = 7, fill = NA, align = "right"),
            O3_8hr = zoo::rollmean(O3, k = 7, fill = NA, align = "right"),
-           Ox_8hr = zoo::rollmean(Ox, k = 7, fill = NA, align = "right"))
+           Ox_8hr = zoo::rollmean(Ox, k = 7, fill = NA, align = "right")) 
   df
 }
 
 ## base time-series plot
 
-timeSeries <- function(data){
+timeSeriesPlot <- function(data){
   
   fig <- plot_ly(data, x = ~Date_time) %>%
     layout(
@@ -84,4 +84,20 @@ timeSeries <- function(data){
     config(modeBarButtonsToRemove = c("zoomIn2d", "zoomOut2d", "pan2d", "autoScale2d", "toggleSpikelines", "zoom2d", "resetScale2d" )) %>%
     layout(margin = list(b = 20, l = 40, r = 40, t = 100, pad = 0, autoexpand = TRUE))
   fig
+}
+
+# Base scatter/correlation plot
+
+scatterPlot <- function(data){
+  
+  p <- ggplot(data = data, 
+              aes(x = NO2, y = O3)) +
+    geom_smooth(method='lm', formula= y~x, se=F) +
+    stat_poly_eq(formula = y~x, 
+                 aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")), 
+                 parse = TRUE,
+                 label.x.npc = 1) +
+    xlab("1hr Concentration NO2 (ppb)") +
+    ylab("1hr Concentration O3 (ppb)") 
+  p
 }
