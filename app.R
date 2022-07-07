@@ -312,7 +312,8 @@ server <- function(input, output, session) {
         "student_number" = student_number(),
         "naps_station" = student_naps,
         "start_date" = startDate,
-        "error_row" = sample(c(1:168), size = 1)
+        "error_row" = sample(c(1:168), size = 1),
+        "date_created" = Sys.time()
       )
       
       saveData(student_vals, sheet_id = SHEET_ID)
