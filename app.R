@@ -336,7 +336,8 @@ server <- function(input, output, session) {
   })
   
   output$df_table <- renderDT({
-    student_data <- student_data()
+    student_data <- student_data() %>%
+      mutate(Time = dateToExcel(Time))
     student_data
   })
   

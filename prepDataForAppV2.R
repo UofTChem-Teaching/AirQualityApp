@@ -179,6 +179,13 @@ write_csv(x = data2, file = "www/Toronto2020_studentData.csv")
 
 
 
+# Convert date-time to excel serial 
 
-
+dateToExcel <- function(date){
+  d0 <- as_datetime(0, origin = "1899-12-30 00:00:00", tz = "UTC")
+  d1 <- date
+  
+  d <- as.numeric(d1-d0)
+  d
+}
 
