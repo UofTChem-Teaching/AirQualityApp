@@ -122,84 +122,28 @@ server <- function(input, output) {
     output$TimeseriesPlot <- renderPlotly({
         
             if(input$rollingAvg == "No, plot 1hr measurements"){
-     
-                fig <- plot_ly(stationDat(), x = ~Date_time)
-                fig <- fig %>% add_lines(y = ~O3, name = "O3")
-                fig <- fig %>% add_lines(y = ~NO2, name = "NO2")
-                fig <- fig %>% add_lines(y = ~Ox, name = "Ox")
-                fig <- fig %>% layout(
-                    title = paste("1 hr readings at ", input$NAPS, '<br>' ),
-                    xaxis = list(
-                        title = "Time",
-                        showgrid = F, 
-                        rangeselector = list(
-                            buttons = list(
-                                list(
-                                    count = 8,
-                                    label = "8 hrs",
-                                    step = "hour",
-                                    stepmode = "backward"),
-                                list(
-                                    count = 1,
-                                    label = "1 day",
-                                    step = "day",
-                                    stepmode = "backward"),
-                                list(
-                                    count = 7,
-                                    label = "7 days",
-                                    step = "day",
-                                    stepmode = "backward"),
-           
-                                list(step = "all"))),
-                   
-                        rangeslider = list(type = "date")),
-                    
-                    yaxis = list(title = "Concentration (ppb)",
-                                 showgrid = F)) %>%
-                    config(modeBarButtonsToRemove = c("zoomIn2d", "zoomOut2d", "pan2d", "autoScale2d", "toggleSpikelines", "zoom2d", "resetScale2d" )) %>%
-                    layout(margin = list(b = 20, l = 40, r = 40, t = 100, pad = 0, autoexpand = TRUE))
-                
+              
+                # # Plot w/ 8hr rolling avg.
+                fig <- timeSeries(data = stationDat()) %>%
+                  layout(
+                    title = paste("1 hr readings at ", input$NAPS, '<br>' )
+                  ) %>%
+                  add_lines(y = ~O3_8hr, name = "O3") %>%
+                  add_lines(y = ~NO2_8hr, name = "NO2") %>%
+                  add_lines(y = ~Ox_8hr, name = "Ox") 
                 fig
                 
             } else {
                 
-                # Plot w/ 8hr rolling avg. 
-                fig <- plot_ly(stationDat(), x = ~Date_time)
-                fig <- fig %>% add_lines(y = ~O3_8hr, name = "O3_8hr")
-                fig <- fig %>% add_lines(y = ~NO2_8hr, name = "NO2_8hr")
-                fig <- fig %>% add_lines(y = ~Ox_8hr, name = "Ox_8hr")
-                fig <- fig %>% layout(
-                    title = paste("Rolling 8hr mean readings at ", input$NAPS),
-                    xaxis = list(
-                        title = "Time",
-                        showgrid = F, 
-                        rangeselector = list(
-                            buttons = list(
-                                list(
-                                    count = 8,
-                                    label = "8 hrs",
-                                    step = "hour",
-                                    stepmode = "backward"),
-                                list(
-                                    count = 1,
-                                    label = "1 day",
-                                    step = "day",
-                                    stepmode = "backward"),
-                                list(
-                                    count = 7,
-                                    label = "7 days",
-                                    step = "day",
-                                    stepmode = "backward"),
-                                
-                                list(step = "all"))),
-                        
-                        rangeslider = list(type = "date")),
-                    
-                    yaxis = list(title = "Concentration (ppb)",
-                                 showgrid = F)) %>%
-                    config(modeBarButtonsToRemove = c("zoomIn2d", "zoomOut2d", "pan2d", "autoScale2d", "toggleSpikelines", "zoom2d", "resetScale2d" )) %>%
-                    layout(margin = list(b = 20, l = 40, r = 40, t = 100, pad = 0, autoexpand = TRUE))
-                fig
+              # # Plot w/ 8hr rolling avg.
+              fig <- timeSeries(data = stationDat()) %>%
+                layout(
+                  title = paste("Rolling 8hr mean readings at ", input$NAPS, '<br>')
+                ) %>%
+                add_lines(y = ~O3_8hr, name = "O3_8hr") %>%
+                add_lines(y = ~NO2_8hr, name = "NO2_8hr") %>%
+                add_lines(y = ~Ox_8hr, name = "Ox_8hr") 
+              fig
             }
             
     })

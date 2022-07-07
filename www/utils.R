@@ -22,9 +22,10 @@ loadData <- function(sheet_id ) {
 }
 
 # Plotting functions ----
-
 # Functions used for time-series and correlation scatter plots 
 
+
+## Reactive subsetting of NAPS data based on inputs, used for both plots & summary stats
 stationDataPrep<- function(data, naps, start_date, end_date){
 
   df <- data %>%
@@ -44,5 +45,43 @@ stationDataPrep<- function(data, naps, start_date, end_date){
            NO2_8hr = zoo::rollmean(NO2, k = 7, fill = NA, align = "right"),
            O3_8hr = zoo::rollmean(O3, k = 7, fill = NA, align = "right"),
            Ox_8hr = zoo::rollmean(Ox, k = 7, fill = NA, align = "right"))
+  df
+}
+
+## base time-series plot
+
+timeSeries <- function(data){
   
+  fig <- plot_ly(data, x = ~Date_time) %>%
+    layout(
+      xaxis = list(
+        title = "Time",
+        showgrid = F,
+        rangeselector = list(
+          buttons = list(
+            list(
+              count = 8,
+              label = "8 hrs",
+              step = "hour",
+              stepmode = "backward"),
+            list(
+              count = 1,
+              label = "1 day",
+              step = "day",
+              stepmode = "backward"),
+            list(
+              count = 7,
+              label = "7 days",
+              step = "day",
+              stepmode = "backward"),
+            
+            list(step = "all"))),
+        
+        rangeslider = list(type = "date")),
+      
+      yaxis = list(title = "Concentration (ppb)",
+                   showgrid = F)) %>%
+    config(modeBarButtonsToRemove = c("zoomIn2d", "zoomOut2d", "pan2d", "autoScale2d", "toggleSpikelines", "zoom2d", "resetScale2d" )) %>%
+    layout(margin = list(b = 20, l = 40, r = 40, t = 100, pad = 0, autoexpand = TRUE))
+  fig
 }
