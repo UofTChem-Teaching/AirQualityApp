@@ -28,41 +28,43 @@ studentData <- data.table::fread("www/Toronto2020_studentData.csv")
 
 naps_stations <- unique(studentData$NAPS)
 
-## 1.4 Custom icons for population size =================================
-
-leafIcons <- icons(
-  iconUrl = ifelse(mapInfo$PopSize == "large", "www/largeIcon.png",
-    ifelse(mapInfo$PopSize == "medium", "www/medIcon.png",
-      ifelse(mapInfo$PopSize == "small", "www/smallIcon.png", "www/ruralIcon.png")
-    )
-  ),
-  iconWidth = 26, iconHeight = 40,
-  iconAnchorX = 13, iconAnchorY = 40
-)
-
-## 1.5 Descriptive text for map icon popups =================================
-
-labs <- lapply(seq(nrow(mapInfo)), function(i) {
-  paste0(
-    "<p>",
-    "<b>", mapInfo[i, "NAPS"], "</b><br>",
-    "Population: ", mapInfo[i, "Population"], "<br>",
-    "Size: ", mapInfo[i, "PopSize"],
-    "</p>"
+## 1.4 Map Icons   =================================
+### 1.4.1 Custom icons for population size =================================
+  
+  leafIcons <- icons(
+    iconUrl = ifelse(mapInfo$PopSize == "large", "www/largeIcon.png",
+      ifelse(mapInfo$PopSize == "medium", "www/medIcon.png",
+        ifelse(mapInfo$PopSize == "small", "www/smallIcon.png", "www/ruralIcon.png")
+      )
+    ),
+    iconWidth = 26, iconHeight = 40,
+    iconAnchorX = 13, iconAnchorY = 40
   )
-})
+  
+### 1.4.2 Descriptive text for map icon popups =================================
+  
+  labs <- lapply(seq(nrow(mapInfo)), function(i) {
+    paste0(
+      "<p>",
+      "<b>", mapInfo[i, "NAPS"], "</b><br>",
+      "Population: ", mapInfo[i, "Population"], "<br>",
+      "Size: ", mapInfo[i, "PopSize"],
+      "</p>"
+    )
+  })
+
 
 ## 1.6 Declarations and functions for google sheets ----
 
 SHEET_ID <- "https://docs.google.com/spreadsheets/d/1spwFA7AlDyhzTjtClexC7YmxDFWT6MvvdCABXnXmsUY/edit?usp=sharing"
 
-# for authenticating sheets access on server 
-options(
-  # whenever there is one account token found, use the cached token
-  gargle_oauth_email = TRUE,
-  # specify auth tokens should be stored in a hidden directory ".secrets", don't push to github....
-  gargle_oauth_cache = ".secrets"
-)
+  # for authenticating sheets access on server 
+  options(
+    # whenever there is one account token found, use the cached token
+    gargle_oauth_email = TRUE,
+    # specify auth tokens should be stored in a hidden directory ".secrets", don't push to github....
+    gargle_oauth_cache = ".secrets"
+  )
 
 # 2. UI  ---------------------------------
 
@@ -76,9 +78,9 @@ ui <- fluidPage(
     sidebarPanel(
       leafletOutput("mymap"),
       selectInput("NAPS",
-        label = "Choose which station's data to display; use the map above to view location of available stations.",
+        label = "Choose which station's data to display; use the map above to view location of available stations (Click map icons to see population size).",
         choices = unique(data$NAPS),
-        selected = "60435"
+        selected = "Sudbury, ON, NAPS: 60610"
       ),
       dateRangeInput("dateRange",
         label = "Select the date range you would like to plot.",
@@ -87,8 +89,12 @@ ui <- fluidPage(
         end = anydate(max(data$Date)),
         max = anydate(max(data$Date))
       ),
-      radioButtons(inputId = "rollingAvg", label = "Plot 8hr rolling average?", choices = c("Yes", "No, plot 1hr measurements")),
-      radioButtons(inputId = "excel", label = "Improve my correlation plot?", choices = c("No", "Yes"))
+      radioButtons(inputId = "rollingAvg", 
+                   label = "Plot 8hr rolling average?", 
+                   choices = c("Yes", "No, plot 1hr measurements")),
+      radioButtons(inputId = "excel", 
+                   label = "Improve my correlation plot?", 
+                   choices = c("No", "Yes"))
     ),
 
   ## 2.3 Main Panel with outputs ========================
@@ -100,33 +106,40 @@ ui <- fluidPage(
           includeHTML("www/welcome.html")
         ),
         tabPanel(
-          "Data",
+          "My Data",
           fluidRow(
             column(
               3,
-              textInput("studentNum", "Enter your student number here"),
-              # selectInput(
-              #   inputId = "labSession",
-              #   label = "You're Lab Session Code",
-              #   choices = c("", "Tues PM", "Wed. AM", "Wed. PM")
-              # ),
-              actionButton("showStudNum", "Get my Data"),
+              textInput("studentNum", "Enter your student number below"),
+              actionButton("showStudNum", "Get my Data!"),
+              br(),
+              br(),
+              p("Your student number is shown on your UofT student card; it should be approx 10 numbers in length.", style = "font-family: 'times'; font-si16pt")
             ),
             column(
               6,
+              align="center",
+              br(),
               uiOutput("downloadButton"),
+              br(),
               # downloadButton("download", "Download Your Data!"),
-              DT::dataTableOutput("df_table") %>% withSpinner(color = "#002A5C")
+              DT::dataTableOutput("df_table") %>% 
+                withSpinner(color = "#002A5C")
             ),
             column(3)
           )
         ),
         tabPanel(
-          "Plot",
-          plotlyOutput("TimeseriesPlot") %>% withSpinner(color = "#002A5C"),
+          "Explore NAPS",
+          plotlyOutput("TimeseriesPlot") %>% 
+            withSpinner(color = "#002A5C"),
           br(),
-          p("You can interact with the time series plot above; i.e. narrowing displayed date range. Note however that the date range for both plots is dictated by your inputted dates. In other words, you’ll need to change your inputted dates to update the data displayed on the correlation plot. To save as an image, use the download button in the top-left (time-series) or right-click and save as (correlation)", style = "font-family: 'times'; font-si16pt"),
-          plotOutput("CompPlot") %>% withSpinner(color = "#002A5C")
+          p("You can interact with the time series plot above; i.e. narrowing displayed date range. Note however that the date range for both plots is dictated by your inputted dates. In other words, you’ll need to change your inputted dates to update the data displayed on the correlation plot. To save as an image, use the download button in the top-left (time-series) or right-click and save as (correlation)", 
+            style = "font-family: 'times'; font-si16pt"),
+          plotOutput("CompPlot") %>% 
+            withSpinner(color = "#002A5C"),
+          p("Both the normal and improved correlation plot display the exact same data. However, the improved version implements a couple of tweaks to improve readability. Firstly, by applying a 'jitter' and increase the transparency of an individual point we can see overlapping points. As well, we've added marginal histograms that show the distribution of the O3 and NO2 data. Lastly, removing the grey background improves readability.", 
+            style = "font-family: 'times'; font-si16pt")
         ),
         tabPanel(
           "Summary Stats",
@@ -145,7 +158,6 @@ ui <- fluidPage(
 # 3. Server -------------------------------------
 
 server <- function(input, output, session) {
-
 
   # 3.1 Reactive data subsetting ================
   stationDat <- reactive({
@@ -217,7 +229,8 @@ server <- function(input, output, session) {
         popup = lapply(labs, htmltools::HTML),
         label = ~ paste(NAPS),
         icon = leafIcons
-      )
+      ) 
+    
   })
 
   # 3.5 Table w/ summary stats ===============
@@ -240,7 +253,6 @@ server <- function(input, output, session) {
     caption = "Table 1: Summary statistics for O3, NO2, and Ox measurements from your selected NAPS station and time range. Note, all measurements are in ppb."
     )
   })
-
   # 3.6 Data assigner -----
   
   # checking if students inputted a valid student ID.
@@ -365,9 +377,6 @@ server <- function(input, output, session) {
   })
 
 }
-
-
-# 3
 
 # 4. Run the application -----------------
 shinyApp(ui = ui, server = server)
