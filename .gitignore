@@ -14,3 +14,4 @@ docker_container_cpu_1h_Practical1.csv
 docker_container_cpu_1m_Practical1.csv
 test.Rmd
 WriteUp.docx
+.secrets
