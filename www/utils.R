@@ -18,7 +18,8 @@ saveData <- function(data, sheet_id ) {
 # imports student google sheets data as data.frame
 loadData <- function(sheet_id ) {
   # Read the data
-  read_sheet(sheet_id, col_names = TRUE)
+  read_sheet(sheet_id, col_names = TRUE) %>%
+    mutate(start_date = round_date(start_date, unit = "hour"))
 }
 
 # Plotting functions ----
@@ -144,7 +145,7 @@ checkUofTID <- function(id){
 # Checks if student was already assigned data set
 # if not, assignes them one
 # outputs a single row data.frame matching the layout of the GoogleSheets
-assigne_vals <- function(df, id, courseData = courseData, naps_stations = naps_stations, sheet_id = SHEET_ID){
+assignedVals <- function(df, id, courseData = courseData, naps_stations = naps_stations, sheet_id = SHEET_ID){
   # df is google sheets with assigned datasets
   # id is student number 
   # courseData is prepapred .csv of toronto NAPS for students loaded at top of App
@@ -154,8 +155,7 @@ assigne_vals <- function(df, id, courseData = courseData, naps_stations = naps_s
   id <- hashID(id)
   
   if(id %in% df$student_number){
-    student_vals <- df[df$student_number == id, ] %>%
-      mutate(start_date = round_date(start_date, unit = "hour"))
+    student_vals <- df[df$student_number == id, ] 
   } else {
     
     # Random NAPS station from available
@@ -188,9 +188,26 @@ assigne_vals <- function(df, id, courseData = courseData, naps_stations = naps_s
   
 }
 
-# # Using student's assigned values, subsets and returns dataset for student
-# student_data <- function(student_vals,  courseData = courseData ){
-#   
-#   
-#   
-# }
+# Using student's assigned values, subsets and returns dataset for student
+studentDataset <- function(student_vals,  courseData = courseData ){
+
+  student_naps <- as.integer(student_vals[1, "naps_station"])
+  student_date <- student_vals[1, "start_date"]
+  student_error <- student_vals[1, "error_row"]
+  
+  # filter for NAPS station
+  start_row <- which(courseData$NAPS == student_naps & courseData$Time == as.numeric(student_date),
+                     arr.ind = TRUE
+  )
+  
+  # Getting 7 day dataset from student's start date
+  df <- slice(
+    courseData,
+    start_row:(start_row + 167)
+  )
+  # inserting '-999' error into students data
+  df[student_error, "O3"] <- -999
+  
+  df
+
+}
