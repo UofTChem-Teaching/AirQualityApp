@@ -304,8 +304,9 @@ server <- function(input, output, session) {
     df
   })
   
+  # hashing student number
   student_number <- eventReactive(input$showStudNum, {
-    paste(input$studentNum)
+    paste(sodium::sha256(charToRaw(as.character(input$studentNum))), collapse = " ")
   })
   
   # Getting student values to retrieve their assigned datasets
