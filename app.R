@@ -23,10 +23,10 @@ data <- data.table::fread("www/ECCC2020_wideCombined.csv", encoding = "UTF-8")
 mapInfo <- data.table::fread("www/ECCC2020_mapInfo.csv", encoding = "UTF-8")
 
 ## 1.3 Data for Subsetting ----
-# what's broken up and handed out to students
-studentData <- data.table::fread("www/Toronto2020_studentData.csv")
+# what's broken up and handed out to students for the assignement
+courseData <- data.table::fread("www/Toronto2020_courseData.csv")
 
-naps_stations <- unique(studentData$NAPS)
+naps_stations <- unique(courseData$NAPS)
 
 ## 1.4 Map Icons   =================================
  ### 1.4.1 Custom icons for population size =================================
@@ -280,26 +280,15 @@ server <- function(input, output, session) {
   ## 3.6 Data assigner -----
   
   # checking if students inputted a valid student ID.
-  
   checkID <- eventReactive(input$showStudNum, {
-    studentNum <- input$studentNum
-    
     # check if any characters other than digits 
     # UofT student ID contain only 10 digits 
-    if (!str_detect(studentNum, "^[0-9]+$")) { 
-      ID <- FALSE
-    } else if (str_count(studentNum) < 9) {
-      ID <- FALSE
-    } else if (str_count(studentNum) > 11) {
-      ID <- FALSE
-    } else {
-      ID <- TRUE
-    }
-    ID
+    checkUofTID(input$studentNum)
   })
   
   # Loading google sheet w/ recorded student values
   course_data <- eventReactive(input$showStudNum, {
+    
     validate(need(checkID(), "Please input your UofT Student number on the left."))
     
     df <- loadData(sheet_id = SHEET_ID) %>%
@@ -307,49 +296,18 @@ server <- function(input, output, session) {
     df
   })
   
-  # hashing student IDs
-  student_number <- eventReactive(input$showStudNum, {
-    paste(sodium::sha256(charToRaw(as.character(input$studentNum))), collapse = " ")
-  })
-  
   # Getting student values to retrieve their assigned datasets
-  student_vals <- reactive({
-    df <- course_data()
+  # Checks if student was already assigned data set if not, assignes them one
+  # outputs a single row data.frame matching GoogleSheets
+   student_vals <- eventReactive(input$showStudNum, {
+
+     assigne_vals(df = course_data(), 
+                  id = input$studentNum,
+                  courseData = courseData, 
+                  naps_stations = naps_stations,
+                  sheet_id = SHEET_ID)
     
-    if (student_number() %in% df$student_number) {
-      student_vals <- df[df$student_number == student_number(), ] %>%
-        mutate(start_date = round_date(start_date, unit = "hour"))
-      
-    } else {
-      
-      # Random NAPS station from available
-      student_naps <- as.character(sample(naps_stations, 1))
-      
-      # filter for NAPS station
-      data_naps <- as.data.frame(studentData[studentData$NAPS == student_naps, ])
-      
-      # Pick random start date, giving >= 7 days of data
-      n_row <- sample((nrow(data_naps) - 168), 1)
-      
-      # Starting date as value
-      startDate <- data_naps[n_row, "Time"]
-      
-      # Saving students assigned values, including location of artifical '-999' error
-      student_vals <- data.frame(
-        "student_number" = student_number(),
-        "naps_station" = student_naps,
-        "start_date" = startDate,
-        "error_row" = sample(c(1:168), size = 1),
-        "date_created" = Sys.time()
-      )
-      
-      saveData(student_vals, sheet_id = SHEET_ID)
-    }
-    
-    as.data.frame(student_vals)
   })
-  
-  # saving new student
   
   # retrieving student assigned datasets
   student_data <- reactive({
@@ -360,13 +318,13 @@ server <- function(input, output, session) {
     student_error <- student_vals[1, "error_row"]
     
     # filter for NAPS station
-    start_row <- which(studentData$NAPS == student_naps & studentData$Time == as.numeric(student_date),
+    start_row <- which(courseData$NAPS == student_naps & courseData$Time == as.numeric(student_date),
                        arr.ind = TRUE
     )
     
     # Getting 7 day dataset from student's start date
     df <- slice(
-      studentData,
+      courseData,
       start_row:(start_row + 167)
     )
     # inserting '-999' error into students data
