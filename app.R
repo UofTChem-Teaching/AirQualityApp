@@ -171,7 +171,8 @@ ui <- fluidPage(
           # add login panel UI function
           shinyauthr::loginUI(id = "login"),
           # setup table output to show user info after login
-          tableOutput("user_table")
+          #tableOutput("user_table")
+          uiOutput("studentNum2")
         )
       )
     )
@@ -279,10 +280,13 @@ server <- function(input, output, session) {
   ## 3.6 Data assigner -----
   
   # checking if students inputted a valid student ID.
+  
   checkID <- eventReactive(input$showStudNum, {
     studentNum <- input$studentNum
     
-    if (!str_detect(studentNum, "^[0-9]+$")) {
+    # check if any characters other than digits 
+    # UofT student ID contain only 10 digits 
+    if (!str_detect(studentNum, "^[0-9]+$")) { 
       ID <- FALSE
     } else if (str_count(studentNum) < 9) {
       ID <- FALSE
@@ -294,7 +298,6 @@ server <- function(input, output, session) {
     ID
   })
   
-  
   # Loading google sheet w/ recorded student values
   course_data <- eventReactive(input$showStudNum, {
     validate(need(checkID(), "Please input your UofT Student number on the left."))
@@ -304,7 +307,7 @@ server <- function(input, output, session) {
     df
   })
   
-  # hashing student number
+  # hashing student IDs
   student_number <- eventReactive(input$showStudNum, {
     paste(sodium::sha256(charToRaw(as.character(input$studentNum))), collapse = " ")
   })
@@ -427,6 +430,11 @@ server <- function(input, output, session) {
     df <- loadData(sheet_id = SHEET_ID) %>%
       mutate(start_date = round_date(start_date, unit = "hour"))
     df
+  })
+  
+  output$studentNum2 <- renderUI({
+    req(credentials()$user_auth)
+    textInput("studentNum2", "Input Student Number")
   })
   
 }
