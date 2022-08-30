@@ -71,12 +71,14 @@ SHEET_ID <- "https://docs.google.com/spreadsheets/d/1spwFA7AlDyhzTjtClexC7YmxDFW
   
 ## 1.7 usernames & passwords ----
   
-  user_base <- tibble::tibble(
-    user = c("user1", "user2"),
-    password = c("pass1", "pass2"),
-    permissions = c("admin", "standard"),
-    name = c("User One", "User Two")
-  )
+  # user_base <- tibble::tibble(
+  #   user = c("user1", "user2"),
+  #   password = c("pass1", "pass2"),
+  #   permissions = c("admin", "standard"),
+  #   name = c("User One", "User Two")
+  # )
+  
+  user_base <- readRDS("user_base.rds")
   
 # 2. UI  ---------------------------------
 
@@ -408,6 +410,7 @@ server <- function(input, output, session) {
     data = user_base,
     user_col = user,
     pwd_col = password,
+    sodium_hashed = TRUE,
     log_out = reactive(logout_init())
   )
   
@@ -420,7 +423,9 @@ server <- function(input, output, session) {
   output$user_table <- renderTable({
     # use req to only render results when credentials()$user_auth is TRUE
     req(credentials()$user_auth)
-    credentials()$info
+    df <- loadData(sheet_id = SHEET_ID) %>%
+      mutate(start_date = round_date(start_date, unit = "hour"))
+    df
   })
   
 }
