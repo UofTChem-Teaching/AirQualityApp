@@ -79,7 +79,7 @@ options(
 #   name = c("User One", "User Two")
 # )
 
-user_base <- readRDS("user_base.rds")
+user_base <- readRDS("www/user_base.rds")
 
 # 2. UI  ---------------------------------
 

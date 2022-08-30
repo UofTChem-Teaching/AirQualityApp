@@ -7,10 +7,11 @@ library(tibble)
 library(purrr)
 
 user_base <- tibble::tibble(
-  user = c("user1", "user2"), 
-  password = purrr::map_chr(c("pass1", "pass2"), sodium::password_store), 
-  permissions = c("admin", "standard"), 
+  user = c("TA", "Jess"), 
+  password = purrr::map_chr(c("CHM135_TA", "CHM135_Jess"), 
+                            sodium::password_store), 
+  permissions = c("standard", "admin"), # aren't used for anything 
   name = c("User One", "User Two")
 )
 
-saveRDS(user_base, "user_base.rds")
+saveRDS(user_base, "www/user_base.rds")
