@@ -149,6 +149,11 @@ ui <- fluidPage(
         tabPanel(
           "Notes",
           includeHTML("www/notes.html")
+        ),
+        tabPanel(
+          "Admin",
+          br(), 
+          p("You're now viewing the admin tab.")
         )
       )
     )
