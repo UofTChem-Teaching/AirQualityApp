@@ -5,13 +5,13 @@ library(tidyverse)
 library(lubridate)
 library(ggExtra) # for marginal histogram
 library(ggpmisc) # to display line of best fit on plot
-library(anytime) # easier then lurbidate for menu selectio...
+library(anytime) # easier then lubridate for menu selection
 library(leaflet) # interactive map
 library(DT) # for data table
 library(zoo) # rolling averages
 library(plotly) # interactive plots
-library(googlesheets4)
-library(shinycssloaders)
+library(googlesheets4) # talking to google sheets 
+library(shinyauthr)# for logins/password protection 
 library(shiny)
 
 source("www/utils.R")
@@ -29,7 +29,7 @@ studentData <- data.table::fread("www/Toronto2020_studentData.csv")
 naps_stations <- unique(studentData$NAPS)
 
 ## 1.4 Map Icons   =================================
-### 1.4.1 Custom icons for population size =================================
+ ### 1.4.1 Custom icons for population size =================================
   
   leafIcons <- icons(
     iconUrl = ifelse(mapInfo$PopSize == "large", "www/largeIcon.png",
@@ -41,7 +41,7 @@ naps_stations <- unique(studentData$NAPS)
     iconAnchorX = 13, iconAnchorY = 40
   )
   
-### 1.4.2 Descriptive text for map icon popups =================================
+ ### 1.4.2 Descriptive text for map icon popups =================================
   
   labs <- lapply(seq(nrow(mapInfo)), function(i) {
     paste0(
@@ -66,6 +66,18 @@ SHEET_ID <- "https://docs.google.com/spreadsheets/d/1spwFA7AlDyhzTjtClexC7YmxDFW
     gargle_oauth_cache = ".secrets"
   )
 
+
+  
+  
+## 1.7 usernames & passwords ----
+  
+  user_base <- tibble::tibble(
+    user = c("user1", "user2"),
+    password = c("pass1", "pass2"),
+    permissions = c("admin", "standard"),
+    name = c("User One", "User Two")
+  )
+  
 # 2. UI  ---------------------------------
 
 ui <- fluidPage(
@@ -91,7 +103,7 @@ ui <- fluidPage(
       ),
       radioButtons(inputId = "rollingAvg", 
                    label = "Plot 8hr rolling average?", 
-                   choices = c("Yes", "No, plot 1hr measurements")),
+                   choices = c( "No, plot 1hr measurements","Yes")),
       radioButtons(inputId = "excel", 
                    label = "Improve my correlation plot?", 
                    choices = c("No", "Yes"))
@@ -152,8 +164,12 @@ ui <- fluidPage(
         ),
         tabPanel(
           "Admin",
-          br(), 
-          p("You're now viewing the admin tab.")
+          # add logout button UI
+          div(class = "pull-right", shinyauthr::logoutUI(id = "logout")),
+          # add login panel UI function
+          shinyauthr::loginUI(id = "login"),
+          # setup table output to show user info after login
+          tableOutput("user_table")
         )
       )
     )
@@ -164,7 +180,7 @@ ui <- fluidPage(
 
 server <- function(input, output, session) {
 
-  # 3.1 Reactive data subsetting ================
+  ## 3.1 Reactive data subsetting ================
   stationDat <- reactive({
     validate(
       need(input$dateRange[1] <= input$dateRange[2], "Make sure dates are correct.")
@@ -179,7 +195,7 @@ server <- function(input, output, session) {
     data
   })
 
-  # 3.2 Time series plot =================
+  ## 3.2 Time series plot =================
   output$TimeseriesPlot <- renderPlotly({
     if (input$rollingAvg == "No, plot 1hr measurements") {
 
@@ -206,7 +222,7 @@ server <- function(input, output, session) {
     }
   })
 
-  # 3.3 O3 vs. NO2 plot =======================
+  ## 3.3 O3 vs. NO2 plot =======================
   output$CompPlot <- renderPlot({
     my.formula <- y ~ x
 
@@ -225,7 +241,7 @@ server <- function(input, output, session) {
     }
   })
 
-  # 3.4 Leaflet map ===================
+  ## 3.4 Leaflet map ===================
   output$mymap <- renderLeaflet({
     leaflet(data = mapInfo) %>%
       addTiles() %>%
@@ -238,7 +254,7 @@ server <- function(input, output, session) {
     
   })
 
-  # 3.5 Table w/ summary stats ===============
+  ## 3.5 Table w/ summary stats ===============
   output$SumTable <- DT::renderDataTable({
     DT::datatable(stationDat() %>%
       pivot_longer(
@@ -258,7 +274,7 @@ server <- function(input, output, session) {
     caption = "Table 1: Summary statistics for O3, NO2, and Ox measurements from your selected NAPS station and time range. Note, all measurements are in ppb."
     )
   })
-  # 3.6 Data assigner -----
+  ## 3.6 Data assigner -----
   
   # checking if students inputted a valid student ID.
   checkID <- eventReactive(input$showStudNum, {
@@ -382,6 +398,31 @@ server <- function(input, output, session) {
     ))
   })
 
+  
+  ## 3.7 Admin Tab -----
+  
+  # call login module supplying data frame, 
+  # user and password cols and reactive trigger
+  credentials <- shinyauthr::loginServer(
+    id = "login",
+    data = user_base,
+    user_col = user,
+    pwd_col = password,
+    log_out = reactive(logout_init())
+  )
+  
+  # call the logout module with reactive trigger to hide/show
+  logout_init <- shinyauthr::logoutServer(
+    id = "logout",
+    active = reactive(credentials()$user_auth)
+  )
+  
+  output$user_table <- renderTable({
+    # use req to only render results when credentials()$user_auth is TRUE
+    req(credentials()$user_auth)
+    credentials()$info
+  })
+  
 }
 
 # 4. Run the application -----------------
