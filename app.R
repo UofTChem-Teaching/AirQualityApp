@@ -377,6 +377,7 @@ server <- function(input, output, session) {
       need(input$studentNum2 != "", "Please input a student number.")
     )
     
+    
     # loading google sheets with assigned datasets
     df <- loadData(sheet_id = SHEET_ID)
     
