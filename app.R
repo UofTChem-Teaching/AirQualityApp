@@ -372,12 +372,17 @@ server <- function(input, output, session) {
   
   # once TA/teacher submits student number for marking, generates that students dataset
   student_data_marking <- eventReactive(input$displayData, {
+    
+    validate(
+      need(input$studentNum2 != "", "Please input a student number.")
+    )
+    
     # loading google sheets with assigned datasets
     df <- loadData(sheet_id = SHEET_ID)
     
     # hashing student number to match that on the google sheet
     id <- hashID(input$studentNum2)
-    #  
+    
     # extracting stored student values from google sheets data
     df <- df[df$student_number == id, ] 
 
