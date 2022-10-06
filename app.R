@@ -15,6 +15,8 @@ library(shinyauthr)# for logins/password protection
 library(shinycssloaders) # for spinners
 library(shiny)
 
+
+#Data source location. Admin tab shows what students' plots should look like
 source("www/utils.R")
 
 ## 1.2 ECCC Starting Data ----
@@ -79,6 +81,7 @@ options(
 #   name = c("User One", "User Two")
 # )
 
+#Read user names and pws from user_base.rds  <- user_base.r
 user_base <- readRDS("www/user_base.rds")
 
 # 2. UI  ---------------------------------
