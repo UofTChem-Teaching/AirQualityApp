@@ -9,11 +9,11 @@ library(purrr)
 pw <- read.csv("passwordsBook.csv")
 
 user_base <- tibble::tibble(
-  user = c("", ""), 
-  password = purrr::map_chr(c("", ""), 
+  user = pw$user, 
+  password = purrr::map_chr(pw$password, 
                             sodium::password_store), 
-  permissions = c("", ""), # aren't used for anything 
-  name = c("", "")
+  permissions = pw$permissions, # aren't used for anything 
+  name = pw$name
 )
 
 saveRDS(user_base, "www/user_base.rds")
