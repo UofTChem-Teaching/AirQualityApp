@@ -15,3 +15,11 @@ docker_container_cpu_1m_Practical1.csv
 test.Rmd
 WriteUp.docx
 .secrets
+# Ignore Mac/Sync system files
+.DS_store
+# Ignore node_modules folder
+node_modules
+# Ignore files related to API keys
+.env
+# Ignore password Book
+passwordsBook.csv
