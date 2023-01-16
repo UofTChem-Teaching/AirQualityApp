@@ -1,21 +1,15 @@
-# 2022-01-08 --- David Ross Hall --- davidross.hall@mail.utoronto.ca
-# script to prepapare ECCC data for app. 
-# largely based on code from JChemEd - AirQualityData repo
+# 2023-01-17 -- David Ross Hall --- davidross.hall@mail.utoronto.ca  
+# functions to prepare continuous hourly NAPS data for app
 
 # 0. Libraries
 
 library(tidyverse)
-
-
-df <- read_csv(file = "raw-data/O3_2020.csv",
-               skip = 7, 
-               )
-
+library(anytime)
 
 # 1. import ECCC files ----
 
 # Reads hourly ECCC NAPS .csv file. 
-# Skips premable, and cleans up column names (removing blingual part, P vs. Province, etc.)
+# Skips preamable, and cleans up column names (removing bilingual part, P vs. Province, etc.)
 
 readECCC <- function(file){
   
@@ -51,7 +45,6 @@ readECCC <- function(file){
   df
 }
 
-O3 <- readECCC("raw-data/O3_2019.csv")
 
 # 2. Combine ECCC for NAPS ----
 
@@ -70,7 +63,7 @@ joinECCC <- function(O3, NO2){
     na_if(-999)
   
   df
-
+  
 }
 
 # 3. Merged City Column ----
@@ -106,80 +99,17 @@ mapInfo <- function(joinedECCC, popDat){
                                Population < 100000 & Population >= 30000 ~ "medium",
                                Population < 30000 & Population >= 1000 ~ "small",
                                TRUE ~ as.character("rural")))
-    
+  
   # Simplifying city names for map labels & dropdown menu
   df <- df %>%
     mergedCity()
-
+  
   df
   
 }
 
-
-
-# 4. Saving Datasets
-
-## 4.1 Joinined ECCC datasets ----
-
-joinedECCC <- joinECCC("raw-data/O3_2020.csv", 
-                       "raw-data/NO2_2020.csv")
-
-## 4.2 Importing and saving map data -----
-
-
-pops <- read_csv("raw-data/NAPSPops.csv",
-                 locale = readr::locale(encoding = "Latin1")) # Population info for every NAPS City
-
-mapInfo <- mapInfo(joinedECCC = joinedECCC, 
-                   popDat = pops)
-
-write_csv(mapInfo, file = "www/ECCC2020_mapInfo.csv")
-
-## 4.3 Pruning and saving ECCC data ----
-
-joinedECCC %>%
-  mergedCity() %>%
-  select(-c(Latitude, Longitude)) %>%
-  write_csv(file = "www/ECCC2020_wideCombined.csv")
-
-
-# 5. Toronto Data for student assigned datasets  ----
-
-# this part is janky, need to revisit and not have is to janky...
-
-torontoNAPS <- c("60410", "60430", "60435", "60438", "60440")
-torNaps <- paste(torontoNAPS, collapse ="|")
-
-
-data <- read_csv("www/ECCC2020_wideCombined.csv") %>%
-  mutate(NAPS = str_replace(NAPS, ".*:", "")) %>%
-  filter(str_detect(NAPS, torNaps)) %>%
-  pivot_longer(
-    cols = starts_with("H"),
-    names_to = c("Hour", "Pollutant"),
-    names_sep = "_",
-    names_prefix = "H",
-    values_to = "Concentration"
-  ) %>%
-  pivot_wider(names_from = 'Pollutant',
-              values_from = 'Concentration') 
-
-data2 <- data %>%
-  filter(Date < lubridate::ymd("2020-03-01")) %>%
-  mutate(Time = paste0(Date, " ", Hour, ":00")) %>%
-  mutate(Time = lubridate::parse_date_time(Time, "%Y-%m-%d %H:%M") - lubridate::hours(1)) %>%
-  #relocate(Time, .after = Longitude) %>%
-  select(-c(Date, Hour)) %>%
-  relocate("Time", .after = "NAPS") %>%
-  replace_na(list( O3 = -999,
-                   NO2 = -999))
-
-write_csv(x = data2, file = "www/Toronto2020_studentData.csv")
-
-
-
-
 # Convert date-time to excel serial 
+# Holdover from previous version. 
 
 dateToExcel <- function(date){
   d0 <- as_datetime(0, origin = "1899-12-30 00:00:00", tz = "UTC")
