@@ -74,13 +74,6 @@ options(
 
 ## 1.7 usernames & passwords ----
 
-# user_base <- tibble::tibble(
-#   user = c("user1", "user2"),
-#   password = c("pass1", "pass2"),
-#   permissions = c("admin", "standard"),
-#   name = c("User One", "User Two")
-# )
-
 #Read user names and pws from user_base.rds  <- user_base.r
 user_base <- readRDS("www/user_base.rds")
 

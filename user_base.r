@@ -6,6 +6,7 @@ library(sodium)
 library(tibble)
 library(purrr)
 
+# Do not upload this to github!!!
 pw <- read.csv("passwordsBook.csv")
 
 user_base <- tibble::tibble(
