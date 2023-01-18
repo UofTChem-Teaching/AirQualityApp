@@ -10,13 +10,13 @@ library(leaflet) # interactive map
 library(DT) # for data table
 library(zoo) # rolling averages
 library(plotly) # interactive plots
-library(googlesheets4) # talking to google sheets 
-library(shinyauthr)# for logins/password protection 
+library(googlesheets4) # talking to google sheets
+library(shinyauthr) # for logins/password protection
 library(shinycssloaders) # for spinners
 library(shiny)
 
 
-#Data source location. Admin tab shows what students' plots should look like
+# Data source location. Admin tab shows what students' plots should look like
 source("www/utils.R")
 
 ## 1.2 ECCC Starting Data ----
@@ -36,9 +36,9 @@ naps_stations <- unique(courseData$NAPS)
 
 leafIcons <- icons(
   iconUrl = ifelse(mapInfo$PopSize == "large", "www/largeIcon.png",
-                   ifelse(mapInfo$PopSize == "medium", "www/medIcon.png",
-                          ifelse(mapInfo$PopSize == "small", "www/smallIcon.png", "www/ruralIcon.png")
-                   )
+    ifelse(mapInfo$PopSize == "medium", "www/medIcon.png",
+      ifelse(mapInfo$PopSize == "small", "www/smallIcon.png", "www/ruralIcon.png")
+    )
   ),
   iconWidth = 26, iconHeight = 40,
   iconAnchorX = 13, iconAnchorY = 40
@@ -61,7 +61,7 @@ labs <- lapply(seq(nrow(mapInfo)), function(i) {
 
 SHEET_ID <- "https://docs.google.com/spreadsheets/d/1spwFA7AlDyhzTjtClexC7YmxDFWT6MvvdCABXnXmsUY/edit?usp=sharing"
 
-# for authenticating sheets access on server 
+# for authenticating sheets access on server
 options(
   # whenever there is one account token found, use the cached token
   gargle_oauth_email = TRUE,
@@ -74,40 +74,44 @@ options(
 
 ## 1.7 usernames & passwords ----
 
-#Read user names and pws from user_base.rds  <- user_base.r
+# Read user names and pws from user_base.rds  <- user_base.r
 user_base <- readRDS("www/user_base.rds")
 
 # 2. UI  ---------------------------------
 
 ui <- fluidPage(
-  
+
   ## 2.1 App title =====================================
   titlePanel("Exploring Air Quality Data"),
-  
+
   ## 2.2 Sidebar Inputs ====================
   sidebarLayout(
     sidebarPanel(
       leafletOutput("mymap"),
       selectInput("NAPS",
-                  label = "Choose which station's data to display; use the map above to view location of available stations (Click map icons to see population size).",
-                  choices = unique(data$NAPS),
-                  selected = "Sudbury, ON, NAPS: 60610"
+        label = "Choose which station's data to display; use the map above to view location of available stations (Click map icons to see population size).",
+        choices = unique(data$NAPS),
+        selected = "Sudbury, ON, NAPS: 60610"
       ),
       dateRangeInput("dateRange",
-                     label = "Select the date range you would like to plot.",
-                     start = anydate(min(data$Date)),
-                     min = anydate(min(data$Date)),
-                     end = anydate(max(data$Date)),
-                     max = anydate(max(data$Date))
+        label = "Select the date range you would like to plot.",
+        start = anydate(min(data$Date)),
+        min = anydate(min(data$Date)),
+        end = anydate(max(data$Date)),
+        max = anydate(max(data$Date))
       ),
-      radioButtons(inputId = "rollingAvg", 
-                   label = "Plot 8hr rolling average?", 
-                   choices = c( "No, plot 1hr measurements","Yes")),
-      radioButtons(inputId = "excel", 
-                   label = "Improve my correlation plot?", 
-                   choices = c("No", "Yes"))
+      radioButtons(
+        inputId = "rollingAvg",
+        label = "Plot 8hr rolling average?",
+        choices = c("No, plot 1hr measurements", "Yes")
+      ),
+      radioButtons(
+        inputId = "excel",
+        label = "Improve my correlation plot?",
+        choices = c("No", "Yes")
+      )
     ),
-    
+
     ## 2.3 Main Panel with outputs ========================
     mainPanel(
       tabsetPanel(
@@ -129,12 +133,12 @@ ui <- fluidPage(
             ),
             column(
               6,
-              align="center",
+              align = "center",
               br(),
               uiOutput("downloadButton"),
               br(),
               # downloadButton("download", "Download Your Data!"),
-              DT::dataTableOutput("df_table") %>% 
+              DT::dataTableOutput("df_table") %>%
                 withSpinner(color = "#002A5C")
             ),
             column(3)
@@ -142,15 +146,17 @@ ui <- fluidPage(
         ),
         tabPanel(
           "Explore NAPS",
-          plotlyOutput("TimeseriesPlot") %>% 
+          plotlyOutput("TimeseriesPlot") %>%
             withSpinner(color = "#002A5C"),
           br(),
-          p("You can interact with the time series plot above; i.e. narrowing displayed date range. Note however that the date range for both plots is dictated by your inputted dates. In other words, you’ll need to change your inputted dates to update the data displayed on the correlation plot. To save as an image, use the download button in the top-left (time-series) or right-click and save as (correlation)", 
-            style = "font-family: 'times'; font-si16pt"),
-          plotOutput("CompPlot") %>% 
+          p("You can interact with the time series plot above; i.e. narrowing displayed date range. Note however that the date range for both plots is dictated by your inputted dates. In other words, you’ll need to change your inputted dates to update the data displayed on the correlation plot. To save as an image, use the download button in the top-left (time-series) or right-click and save as (correlation)",
+            style = "font-family: 'times'; font-si16pt"
+          ),
+          plotOutput("CompPlot") %>%
             withSpinner(color = "#002A5C"),
-          p("Both the normal and improved correlation plot display the exact same data. However, the improved version implements a couple of tweaks to improve readability. Firstly, by applying a 'jitter' and increase the transparency of an individual point we can see overlapping points. As well, we've added marginal histograms that show the distribution of the O3 and NO2 data. Lastly, removing the grey background improves readability.", 
-            style = "font-family: 'times'; font-si16pt")
+          p("Both the normal and improved correlation plot display the exact same data. However, the improved version implements a couple of tweaks to improve readability. Firstly, by applying a 'jitter' and increase the transparency of an individual point we can see overlapping points. As well, we've added marginal histograms that show the distribution of the O3 and NO2 data. Lastly, removing the grey background improves readability.",
+            style = "font-family: 'times'; font-si16pt"
+          )
         ),
         tabPanel(
           "Summary Stats",
@@ -181,13 +187,13 @@ ui <- fluidPage(
 # 3. Server -------------------------------------
 
 server <- function(input, output, session) {
-  
+
   ## 3.1 Reactive data subsetting ================
   stationDat <- reactive({
     validate(
       need(input$dateRange[1] <= input$dateRange[2], "Make sure dates are correct.")
     )
-    
+
     data <- stationDataPrep(
       data = data,
       naps = input$NAPS,
@@ -196,11 +202,11 @@ server <- function(input, output, session) {
     )
     data
   })
-  
+
   ## 3.2 Time series plot =================
   output$TimeseriesPlot <- renderPlotly({
     if (input$rollingAvg == "No, plot 1hr measurements") {
-      
+
       # # Plot w/ 8hr rolling avg.
       fig <- timeSeriesPlot(data = stationDat()) %>%
         layout(
@@ -211,7 +217,7 @@ server <- function(input, output, session) {
         add_lines(y = ~Ox, name = "Ox")
       fig
     } else {
-      
+
       # # Plot w/ 8hr rolling avg.
       fig <- timeSeriesPlot(data = stationDat()) %>%
         layout(
@@ -223,14 +229,14 @@ server <- function(input, output, session) {
       fig
     }
   })
-  
+
   ## 3.3 O3 vs. NO2 plot =======================
   output$CompPlot <- renderPlot({
     my.formula <- y ~ x
-    
+
     p <- scatterPlot(data = stationDat()) +
       ggtitle(paste("\nO3 vs NO2 at ", input$NAPS, " \nfrom ", input$dateRange[1], " to ", input$dateRange[2]))
-    
+
     if (input$excel == "No") {
       p +
         geom_point()
@@ -238,95 +244,94 @@ server <- function(input, output, session) {
       p <- p +
         geom_jitter(alpha = .1) +
         theme_classic()
-      
+
       ggMarginal(p, type = "density")
     }
   })
-  
+
   ## 3.4 Leaflet map ===================
   output$mymap <- renderLeaflet({
     leaflet(data = mapInfo) %>%
       addTiles() %>%
       addMarkers(~Longitude,
-                 ~Latitude,
-                 popup = lapply(labs, htmltools::HTML),
-                 label = ~ paste(NAPS),
-                 icon = leafIcons
-      ) 
-    
+        ~Latitude,
+        popup = lapply(labs, htmltools::HTML),
+        label = ~ paste(NAPS),
+        icon = leafIcons
+      )
   })
-  
+
   ## 3.5 Table w/ summary stats ===============
   output$SumTable <- DT::renderDataTable({
     DT::datatable(stationDat() %>%
-                    pivot_longer(
-                      cols = c("O3", "NO2", "Ox", "NO2_8hr", "O3_8hr", "Ox_8hr"),
-                      names_to = "Pollutant",
-                      values_to = "Concentration"
-                    ) %>%
-                    group_by(Pollutant) %>%
-                    summarise(
-                      mean = mean(Concentration, na.rm = TRUE),
-                      sd = sd(Concentration, na.rm = TRUE),
-                      median = median(Concentration, na.rm = TRUE),
-                      min = min(Concentration, na.rm = TRUE),
-                      max = max(Concentration, na.rm = TRUE)
-                    ) %>%
-                    mutate_if(is.numeric, round, digits = 2),
-                  caption = "Table 1: Summary statistics for O3, NO2, and Ox measurements from your selected NAPS station and time range. Note, all measurements are in ppb."
+      pivot_longer(
+        cols = c("O3", "NO2", "Ox", "NO2_8hr", "O3_8hr", "Ox_8hr"),
+        names_to = "Pollutant",
+        values_to = "Concentration"
+      ) %>%
+      group_by(Pollutant) %>%
+      summarise(
+        mean = mean(Concentration, na.rm = TRUE),
+        sd = sd(Concentration, na.rm = TRUE),
+        median = median(Concentration, na.rm = TRUE),
+        min = min(Concentration, na.rm = TRUE),
+        max = max(Concentration, na.rm = TRUE)
+      ) %>%
+      mutate_if(is.numeric, round, digits = 2),
+    caption = "Table 1: Summary statistics for O3, NO2, and Ox measurements from your selected NAPS station and time range. Note, all measurements are in ppb."
     )
   })
   ## 3.6 Data assigner -----
-  
-  # Loading google sheet w/ recorded student values
+
+  ### 3.6.1 Loading google sheet w/ recorded student values ----
   course_data <- eventReactive(input$showStudNum, {
-    
     validate(need(checkUofTID(input$studentNum), "Please input your UofT Student number."))
-    
+
     loadData(sheet_id = SHEET_ID)
-    
   })
-  
-  # Returns values required to generate student's assigned dataset
+
+  ### 3.6.2 Returns values required to generate student's assigned dataset ----
   student_vals <- eventReactive(input$showStudNum, {
-    
-    assignedVals(df = course_data(), 
-                 id = input$studentNum,
-                 courseData = courseData, 
-                 naps_stations = naps_stations,
-                 sheet_id = SHEET_ID)
-    
+    assignedVals(
+      df = course_data(),
+      id = input$studentNum,
+      courseData = courseData,
+      naps_stations = naps_stations,
+      sheet_id = SHEET_ID
+    )
   })
-  
-  # Generates students assigned dataset; subset of courseData 
+
+  ### 3.6.3 Generates students assigned dataset; subset of courseData ----
   student_data <- reactive({
-    studentDataset(student_vals = student_vals(), 
-                   courseData = courseData)
+    studentDataset(
+      student_vals = student_vals(),
+      courseData = courseData
+    )
   })
-  
-  # Displays assigned dataset on shiny app
+
+  ### 3.6.4 Displays assigned dataset on shiny app ----
   output$df_table <- renderDT({
     student_data <- student_data() %>%
       mutate(Time = dateToExcel(Time))
     student_data
   })
-  
-  # handler for download button 
+
+  ### 3.6.5 handler for download button ----
   output$download <- downloadHandler(
     filename = "my_7day_data.csv",
     content = function(file) {
       write.csv(student_data(), file, row.names = FALSE)
     }
   )
-  
-  # Renders download button once dataset as has been generated
+
+  ### 3.6.6 Renders download button once dataset as has been generated ----
   output$downloadButton <- renderUI({
     if (!is.null(student_data())) {
       downloadButton("download", "Download Your Data!")
     }
   })
-  
-  # modal dialog to download data
+
+  ### 3.6.7 modal dialog to download data ----
   observeEvent(student_data(), {
     showModal(modalDialog(
       title = "Download",
@@ -334,10 +339,10 @@ server <- function(input, output, session) {
       easyClose = TRUE
     ))
   })
-  
+
   ## 3.7 Admin Tab -----
-  
-  # call login module supplying data frame, 
+
+  # call login module supplying data frame,
   # user and password cols and reactive trigger
   credentials <- shinyauthr::loginServer(
     id = "login",
@@ -347,95 +352,98 @@ server <- function(input, output, session) {
     sodium_hashed = TRUE,
     log_out = reactive(logout_init())
   )
-  
+
   # call the logout module with reactive trigger to hide/show
   logout_init <- shinyauthr::logoutServer(
     id = "logout",
     active = reactive(credentials()$user_auth)
   )
-  
+
   # Renders text input box after user authenticated
   output$studentNumMark <- renderUI({
     req(credentials()$user_auth)
     textInput("studentNum2", "Input Student Number")
   })
-  
+
   # Renders action button after user authenticated
   output$showStudentNum2 <- renderUI({
     req(credentials()$user_auth)
     actionButton("displayData", "Display Student's Data")
   })
-  
+
   # once TA/teacher submits student number for marking, generates that students dataset
   student_data_marking <- eventReactive(input$displayData, {
-    
     validate(
       need(input$studentNum2 != "", "Please input a student number.")
     )
-    
-    
+
+
     # loading google sheets with assigned datasets
     df <- loadData(sheet_id = SHEET_ID)
-    
+
     # hashing student number to match that on the google sheet
     id <- hashID(input$studentNum2)
-    
+
     # extracting stored student values from google sheets data
-    df <- df[df$student_number == id, ] 
+    df <- df[df$student_number == id, ]
 
     student_naps <- as.integer(pull(df[1, "naps_station"]))
     student_date <- pull(df[1, "start_date"])
-    
+
     # filter for NAPS station
     start_row <- which(courseData$NAPS == student_naps & courseData$Time == as.numeric(student_date),
-                       arr.ind = TRUE
+      arr.ind = TRUE
     )
-    
-    #Getting 7 day dataset from student's start date
+
+    # Getting 7 day dataset from student's start date
     students_dataset <- slice(
       courseData,
       start_row:(start_row + 167)
     )
-    
-    #student_date
+
+    # student_date
     students_dataset
-    #student_values
+    # student_values
   })
-  
+
   output$markingTimeSeries <- renderPlot({
-    
-    data <- student_data_marking() %>% 
-      dplyr::mutate(O3 = dplyr::na_if(O3, -999),
-                    NO2 = dplyr::na_if(NO2, -999),
-                    Ox = O3 + NO2) %>%
-      pivot_longer(cols = O3:Ox, 
-                   names_to = "pollutant", 
-                   values_to = "concentration") 
-    
-    ggplot(data = data, 
-           aes(x = Time, 
-               y = concentration,
-               colour = pollutant)) +
-      geom_line() + 
+    data <- student_data_marking() %>%
+      dplyr::mutate(
+        O3 = dplyr::na_if(O3, -999),
+        NO2 = dplyr::na_if(NO2, -999),
+        Ox = O3 + NO2
+      ) %>%
+      pivot_longer(
+        cols = O3:Ox,
+        names_to = "pollutant",
+        values_to = "concentration"
+      )
+
+    ggplot(
+      data = data,
+      aes(
+        x = Time,
+        y = concentration,
+        colour = pollutant
+      )
+    ) +
+      geom_line() +
       theme_classic() +
       labs(title = "Student's Time Series plot should look like this:")
-    
-    
   })
-  
+
   output$markingScatter <- renderPlot({
     my.formula <- y ~ x
-  
+
     data <- student_data_marking()
-    
+
     data[data == -999] <- NA
-    
+
     p <- scatterPlot(data = data) +
       geom_point() +
-      labs(title =  "Student's Scatter plot should look like this:")
+      labs(title = "Student's Scatter plot should look like this:")
     p
   })
-  
 }
 
 # 4. Run the application -----------------

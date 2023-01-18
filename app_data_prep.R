@@ -1,9 +1,9 @@
 # 2023-01-17 --- David Ross Hall --- davidross.hall@mail.utoronto.ca
-# script to prepapare ECCC data for app. 
+# script to prepapare ECCC data for app.
 
 # Run this entire script to generate the national NAPS
 # dataset for the Air Quality App (what's displayed)
-# and to generate the Toronto Subset that's passed along to students. 
+# and to generate the Toronto Subset that's passed along to students.
 
 
 # 0. Source & libraries ----
@@ -29,22 +29,27 @@ wide_Combined <- "www/ECCC2020_wideCombined.csv"
 student_data <- "www/Toronto2020_studentData.csv"
 
 # 2. Saving ECCC Data for App ----
-## Merging the two NAPS datasets for the App; 
-## This is the dataset displayed on the app. 
+## Merging the two NAPS datasets for the App;
+## This is the dataset displayed on the app.
 
 ## 2.1 Joinined ECCC datasets ----
 
-joinedECCC <- joinECCC(O3_data, 
-                       NO2_data)
+joinedECCC <- joinECCC(
+  O3_data,
+  NO2_data
+)
 
 ## 2.2 Importing and saving map data -----
 
 
 pops <- read_csv(population_data,
-                 locale = readr::locale(encoding = "Latin1")) # Population info for every NAPS City
+  locale = readr::locale(encoding = "Latin1")
+) # Population info for every NAPS City
 
-mapInfo <- mapInfo(joinedECCC = joinedECCC, 
-                   popDat = pops)
+mapInfo <- mapInfo(
+  joinedECCC = joinedECCC,
+  popDat = pops
+)
 
 write_csv(mapInfo, file = map_info_save)
 
@@ -59,12 +64,12 @@ joinedECCC %>%
 # Ensure that you've run Part 1 before running part 2
 # Enumerating desired NAPS stations; the ones listed here are for Toronto.
 
-#student_Naps <- paste(student_stations, collapse ="|")
+# student_Naps <- paste(student_stations, collapse ="|")
 
 # Tidying wide Toronto NAPS data
 data <- read_csv(wide_Combined) %>%
   mutate(NAPS = str_replace(NAPS, ".*:", "")) %>%
-  filter(str_detect(NAPS, paste(student_stations, collapse ="|"))) %>%
+  filter(str_detect(NAPS, paste(student_stations, collapse = "|"))) %>%
   pivot_longer(
     cols = starts_with("H"),
     names_to = c("Hour", "Pollutant"),
@@ -72,21 +77,22 @@ data <- read_csv(wide_Combined) %>%
     names_prefix = "H",
     values_to = "Concentration"
   ) %>%
-  pivot_wider(names_from = 'Pollutant',
-              values_from = 'Concentration')
+  pivot_wider(
+    names_from = "Pollutant",
+    values_from = "Concentration"
+  )
 
-# Converting time format to match Excels. 
+# Converting time format to match Excels.
 data2 <- data %>%
   filter(Date < lubridate::ymd("2020-03-01")) %>%
   mutate(Time = paste0(Date, " ", Hour, ":00")) %>%
   mutate(Time = lubridate::parse_date_time(Time, "%Y-%m-%d %H:%M") - lubridate::hours(1)) %>%
-  #relocate(Time, .after = Longitude) %>%
+  # relocate(Time, .after = Longitude) %>%
   select(-c(Date, Hour)) %>%
   relocate("Time", .after = "NAPS") %>%
-  replace_na(list( O3 = -999,
-                   NO2 = -999))
+  replace_na(list(
+    O3 = -999,
+    NO2 = -999
+  ))
 
 write_csv(x = data2, file = student_data)
-
-
-
