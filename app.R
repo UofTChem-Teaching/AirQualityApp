@@ -176,6 +176,7 @@ ui <- fluidPage(
           # setup table output to show user info after login
           uiOutput("studentNumMark"),
           uiOutput("showStudentNum2"),
+          verbatimTextOutput("markingData"),
           plotOutput("markingTimeSeries"),
           plotOutput("markingScatter")
         )
@@ -406,6 +407,11 @@ server <- function(input, output, session) {
     # student_values
   })
 
+  output$markingData <- renderPrint({
+    print("The first few rows of this student's assigned data:")
+    print(head(student_data_marking()))
+  })
+  
   output$markingTimeSeries <- renderPlot({
     data <- student_data_marking() %>%
       dplyr::mutate(
