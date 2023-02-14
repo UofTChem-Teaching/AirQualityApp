@@ -118,13 +118,13 @@ Create a local file called `user_base.r` that contains the following:
 
 Change the `user`, `password`, and any other items to suite your needs. Run the scripts to create the `user_base.rds` file, which contains the encrypted passwords. These are the passwords for the Admin tabs. DO NOT push the `user_based.r` file to Github as this contains the un-encrypted passwords. See the [`shinyauthr` repo](https://github.com/PaulC91/shinyauthr) for additional details.
 
-## Comments on shinyapps.io {#comments-on-shinyappsio}
+## Comments on shinyapps.io 
 
 Running a Shiny app requires server side computing. In other words, as students select data to plot, a dedicated server must perform the necessary computations. While these requirements are not egregious, they are still to be considered if you plan on hosting your own instance of the app. While Shiny provides instructions and software for running the app on premise, we opted to host our app on the Shiny server cloud. Predictably, many students 'flashed' the app as the assignment deadline approached. Without adequate server space, this could increase load times, decrease responsiveness, and possibly crash the app. The free 15hrs/month of server time (time it takes to run the app) provided by Shiny is unsuitable for the anticipated server loads if the App is deployed for the typical fall CHM135 sessions which can have more than 2000 students.
 
 We have used the *Standard* ShinyApps package to run the app for courses numbering more than 1600 students, and proper configuration. The *Basic* package is satisfactory for classes less then 250 students. Note that the app needs to be further configured via the ShinyApps dashboard (details [here](https://shiny.rstudio.com/articles/scaling-and-tuning.html)). Special attention should be payed to the number of possible concurrent connections.
 
-## Helpful links {#helpful-links}
+## Helpful links
 
 -   Therefore the easiest way run, modify, and deploy the app is from cloning this repo either from
 
