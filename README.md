@@ -7,16 +7,16 @@ Instructions for running the app, and customizing it, can be found below.
 ### Rough App Workflow
 
 The app is written to mirror the Air Quality Activity. As such, the typical workflow for the app would be:
-  
-  1.  Navigate to app at [uoft-chem.shinyapps.io/Air_Quality_App/](https://uoft-chem.shinyapps.io/Air_Quality_App/); the **Welcome** splash page contains instructions for navigating the app.
+
+1.  Navigate to app at [uoft-chem.shinyapps.io/Air_Quality_App/](https://uoft-chem.shinyapps.io/Air_Quality_App/); the **Welcome** splash page contains instructions for navigating the app.
 
 2.  Go to **My Data** where students input their student number and receive a download prompt for their assigned dataset. This is students analyze offline in Excel.
 
-<details>
-  
-  <summary>Details on how student datasets are generated</summary>
-  
-  The datasets provided to students are produced as follows. Once students input their student number, a random sampling point is chosen from a random Greater Toronto Area (GTA) NAPS station. Then a subset of that dataset corresponding to 168 consecutive hours of measurements from that station and timepoint is produced and made available for download. Resolving issues around missing values, stored as '-999' in the NAPS data, is a critical component of the lab. Therefore, we artificially insert a random '-999' error into each dataset, ensuring every student encounters this problem. The inputted student numbers are stored alongside that number's associated random NAPS station, starting data, inserted random error point, and the time the dataset was first created. This permits several features of the air quality app. Firstly, it ensures that the same dataset will be recreated for a given student number input. Secondly, it ensures that instructors can verify that student submissions correspond to their assigned dataset. Thirdly, it provides the ability to reproduce any student's dataset should the need arise. To this end, we also included a password protected 'Admin' tab to the app, accessible only to TAs provided with the appropriate login credentials. Once unlocked, the 'Admin' tab allows markers to input any student's ID and receive an automated plotting of that student's assigned dataset for comparison to that student's submission. To preserve student privacy, inputted student IDs are one-way hashed via the [sodium package](https://cran.r-project.org/web/packages/sodium/index.html) before storage on a private, password protected, Google Sheets page accessible only by the course instructor.
+    <details>
+
+    <summary>Details on how student datasets are generated</summary>
+
+    The datasets provided to students are produced as follows. Once students input their student number, a random sampling point is chosen from a random Greater Toronto Area (GTA) NAPS station. Then a subset of that dataset corresponding to 168 consecutive hours of measurements from that station and timepoint is produced and made available for download. Resolving issues around missing values, stored as '-999' in the NAPS data, is a critical component of the lab. Therefore, we artificially insert a random '-999' error into each dataset, ensuring every student encounters this problem. The inputted student numbers are stored alongside that number's associated random NAPS station, starting data, inserted random error point, and the time the dataset was first created. This permits several features of the air quality app. Firstly, it ensures that the same dataset will be recreated for a given student number input. Secondly, it ensures that instructors can verify that student submissions correspond to their assigned dataset. Thirdly, it provides the ability to reproduce any student's dataset should the need arise. To this end, we also included a password protected 'Admin' tab to the app, accessible only to TAs provided with the appropriate login credentials. Once unlocked, the 'Admin' tab allows markers to input any student's ID and receive an automated plotting of that student's assigned dataset for comparison to that student's submission. To preserve student privacy, inputted student IDs are one-way hashed via the [sodium package](https://cran.r-project.org/web/packages/sodium/index.html) before storage on a private, password protected, Google Sheets page accessible only by the course instructor.
 
     </details>
 
@@ -59,7 +59,7 @@ The Air Quality App can be readily customized and deployed for any course.
 
     </details>
 
-
+    <br>
 
 3.  **Run app locally**; the app can be run locally by opening the `AirQualityApp.Rproj` in RStudio, then opening the `app.R` file, and clicking *Run App* in the top right corner. See [Helpful Links](#helpful-links) for resources on coding in R and Shiny.
 
@@ -111,10 +111,10 @@ Create a local file called `user_base.r` that contains the following:
       password = purrr::map_chr(c("xxx","yyy", "zzz"), 
                                 sodium::password_store), 
       permissions = c("standard", "standard", "admin"), # aren't used for anything 
-name = c("User One", "User Two", "User Three")
-)
+      name = c("User One", "User Two", "User Three")
+    )
 
-saveRDS(user_base, "www/user_base.rds")
+    saveRDS(user_base, "www/user_base.rds")
 
 Change the `user`, `password`, and any other items to suite your needs. Run the scripts to create the `user_base.rds` file, which contains the encrypted passwords. These are the passwords for the Admin tabs. DO NOT push the `user_based.r` file to Github as this contains the un-encrypted passwords. See the [`shinyauthr` repo](https://github.com/PaulC91/shinyauthr) for additional details.
 
@@ -131,5 +131,3 @@ We have used the *Standard* ShinyApps package to run the app for courses numberi
 -   [github directly](%5Bhttps://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository)](<https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository>)) or, via
 
 -   [RStudio](%5Bhttps://happygitwithr.com/rstudio-git-github.html).](<https://happygitwithr.com/rstudio-git-github.html>).)
-=======
->>>>>>> b1e6f6c6756a4f794b6085dfcf9c5bbf2a5a8b48
