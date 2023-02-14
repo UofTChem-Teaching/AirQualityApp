@@ -123,11 +123,3 @@ Change the `user`, `password`, and any other items to suite your needs. Run the 
 Running a Shiny app requires server side computing. In other words, as students select data to plot, a dedicated server must perform the necessary computations. While these requirements are not egregious, they are still to be considered if you plan on hosting your own instance of the app. While Shiny provides instructions and software for running the app on premise, we opted to host our app on the Shiny server cloud. Predictably, many students 'flashed' the app as the assignment deadline approached. Without adequate server space, this could increase load times, decrease responsiveness, and possibly crash the app. The free 15hrs/month of server time (time it takes to run the app) provided by Shiny is unsuitable for the anticipated server loads if the App is deployed for the typical fall CHM135 sessions which can have more than 2000 students.
 
 We have used the *Standard* ShinyApps package to run the app for courses numbering more than 1600 students, and proper configuration. The *Basic* package is satisfactory for classes less then 250 students. Note that the app needs to be further configured via the ShinyApps dashboard (details [here](https://shiny.rstudio.com/articles/scaling-and-tuning.html)). Special attention should be payed to the number of possible concurrent connections.
-
-## Helpful links
-
--   Therefore the easiest way run, modify, and deploy the app is from cloning this repo either from
-
--   [github directly](%5Bhttps://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository)](<https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository>)) or, via
-
--   [RStudio](%5Bhttps://happygitwithr.com/rstudio-git-github.html).](<https://happygitwithr.com/rstudio-git-github.html>).)
