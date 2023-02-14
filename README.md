@@ -71,7 +71,7 @@ The Air Quality App can be readily customized and deployed for any course.
 
     1.  When deploying the app make sure to include the `.secrets` folder created during the [Setting up Google Sheets](#setting-up-google-sheets){style="font-size: 11pt;"} instructions, in addition to the entire `www` folder with the data prepared for the app.
 
-## Setting up Google Sheets {#setting-up-google-sheets}
+## Setting up Google Sheets 
 
 The **My Data** tab will not work until the app is linked to Google Sheets. This is accomplished via the [`googlesheets4`](https://github.com/tidyverse/googlesheets4) package and the following:
 
@@ -81,7 +81,7 @@ The **My Data** tab will not work until the app is linked to Google Sheets. This
 2.  Follow the [instructions by Jonathan Trattner to connect google sheets with Shiny.](https://www.jdtrat.com/blog/connect-shiny-google/)
     1.  the `SHEET_ID` variable at the top of the `app.R` file should be your sheets unique URL.
 
-## Customizing App {#customizing-app}
+## Customizing App
 
 The principle customizing of the app will relate to the datasets displayed in the App and assigned from datasets. Since the app utilizes publicly available hourly measurements of O~3~ and NO~2~ from the NAPS.
 
