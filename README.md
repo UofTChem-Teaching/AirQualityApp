@@ -18,7 +18,6 @@ The app is written to mirror the Air Quality Activity. As such, the typical work
   
   The datasets provided to students are produced as follows. Once students input their student number, a random sampling point is chosen from a random Greater Toronto Area (GTA) NAPS station. Then a subset of that dataset corresponding to 168 consecutive hours of measurements from that station and timepoint is produced and made available for download. Resolving issues around missing values, stored as '-999' in the NAPS data, is a critical component of the lab. Therefore, we artificially insert a random '-999' error into each dataset, ensuring every student encounters this problem. The inputted student numbers are stored alongside that number's associated random NAPS station, starting data, inserted random error point, and the time the dataset was first created. This permits several features of the air quality app. Firstly, it ensures that the same dataset will be recreated for a given student number input. Secondly, it ensures that instructors can verify that student submissions correspond to their assigned dataset. Thirdly, it provides the ability to reproduce any student's dataset should the need arise. To this end, we also included a password protected 'Admin' tab to the app, accessible only to TAs provided with the appropriate login credentials. Once unlocked, the 'Admin' tab allows markers to input any student's ID and receive an automated plotting of that student's assigned dataset for comparison to that student's submission. To preserve student privacy, inputted student IDs are one-way hashed via the [sodium package](https://cran.r-project.org/web/packages/sodium/index.html) before storage on a private, password protected, Google Sheets page accessible only by the course instructor.
 
-<<<<<<< HEAD
     </details>
 
     <br>
@@ -60,7 +59,7 @@ The Air Quality App can be readily customized and deployed for any course.
 
     </details>
 
-    <br>
+
 
 3.  **Run app locally**; the app can be run locally by opening the `AirQualityApp.Rproj` in RStudio, then opening the `app.R` file, and clicking *Run App* in the top right corner. See [Helpful Links](#helpful-links) for resources on coding in R and Shiny.
 
